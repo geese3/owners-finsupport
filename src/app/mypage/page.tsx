@@ -93,7 +93,7 @@ export default function MyPage() {
     filters,
     setFilters,
     bookmarkSubvention,
-    unbookmarkSubvention
+    // unbookmarkSubvention - not used
   } = useRecommendations(userInfo?.industry, userInfo?.region, hasEnhancedProfile);
 
   // 미션 완료 핸들러
@@ -130,7 +130,7 @@ export default function MyPage() {
   };
 
   // 향상된 프로필 저장 핸들러
-  const handleEnhancedProfileSubmit = async (profileData: any) => {
+  const handleEnhancedProfileSubmit = async (profileData: Record<string, any>) => {
     try {
       // API 호출하여 프로필 데이터 저장
       const response = await fetch('/api/recommendations', {
@@ -442,7 +442,7 @@ export default function MyPage() {
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                키워드: "{history.keyword}"
+                                키워드: &quot;{history.keyword}&quot;
                               </h3>
                               <div className="text-sm text-gray-600 space-y-1">
                                 <p>업종: {history.industry}</p>

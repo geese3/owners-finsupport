@@ -69,7 +69,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
   const supportTypeOptions = ['자금지원', '컨설팅', '교육/훈련', '인증지원', '해외진출', '네트워킹'];
   const institutionOptions = ['중소벤처기업부', '산업통상자원부', '과학기술정보통신부', '환경부', '지방자치단체'];
 
-  const handleInputChange = (field: keyof EnhancedUserProfile, value: any) => {
+  const handleInputChange = (field: keyof EnhancedUserProfile, value: string | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
