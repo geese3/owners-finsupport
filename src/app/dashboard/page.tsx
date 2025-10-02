@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 
 // 네이버 지원사업 데이터 타입
@@ -513,52 +511,7 @@ export default function DashboardPage() {
   }, [searchFilters, isFullDataLoaded, allSubventions, filterSubventions]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <Image
-                  src="/owners-logo.png"
-                  alt="오너스경영연구소"
-                  width={300}
-                  height={90}
-                  className="h-20 w-auto"
-                />
-              </Link>
-            </div>
-            <nav className="flex space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                정부지원사업
-              </Link>
-              <Link
-                href="/procurement"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                공공조달
-              </Link>
-              <Link
-                href="/mypage"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                마이페이지
-              </Link>
-              <Link
-                href="/auth/login"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                로그아웃
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 페이지 타이틀 */}
         <div className="mb-8">

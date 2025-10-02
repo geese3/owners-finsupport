@@ -50,23 +50,18 @@ export default function RoadmapDemo() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              로드맵 API 데모
-            </h1>
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">총 포인트:</span> {totalPoints.toLocaleString()}P
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-gray-50">
       {/* 메인 컨텐츠 */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 페이지 타이틀 */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4 sm:mb-0">
+            로드맵
+          </h1>
+          <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow-sm">
+            <span className="font-medium">총 포인트:</span> {totalPoints.toLocaleString()}P
+          </div>
+        </div>
         {/* 설명 */}
         <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-blue-900 mb-2">
