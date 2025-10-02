@@ -522,8 +522,8 @@ export default function DashboardPage() {
         </div>
 
         {/* 검색 필터 섹션 */}
-        <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 업종
@@ -568,44 +568,60 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
+          {/* 상태 정보 */}
+          <div className="mb-4">
+            <div className="text-sm text-gray-600 text-center sm:text-left">
               {loading || workflowLoading ? "데이터 조회 중..." :
                 isFullDataLoaded
                   ? `🚀 전체 ${allSubventions.length}개 데이터 로드 완료 | 필터링 결과: ${subventions.length}개 표시 (실시간 검색 가능)`
                   : `총 ${totalCount}개의 지원사업 중 ${subventions.length}개 표시 (${currentPage}페이지)`
               }
             </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleSearch}
-                disabled={loading || workflowLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
-              >
+          </div>
+
+          {/* 액션 버튼들 - 모바일 최적화 */}
+          <div className="grid grid-cols-2 sm:flex sm:justify-end gap-2 sm:gap-2 mb-6">
+            <button
+              onClick={handleSearch}
+              disabled={loading || workflowLoading}
+              className="px-3 py-2 sm:px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <span className="block sm:hidden">🔍 빠른검색</span>
+              <span className="hidden sm:block">
                 {loading ? "검색 중..." : isFullDataLoaded ? "🔍 즉시 검색" : "빠른 검색"}
-              </button>
-              <button
-                onClick={() => handleWorkflowCrawl('single')}
-                disabled={loading || workflowLoading}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed"
-              >
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleWorkflowCrawl('single')}
+              disabled={loading || workflowLoading}
+              className="px-3 py-2 sm:px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <span className="block sm:hidden">🔧 워크플로우</span>
+              <span className="hidden sm:block">
                 {workflowLoading ? "워크플로우 실행 중..." : "워크플로우 검색"}
-              </button>
-              <button
-                onClick={() => handleWorkflowCrawl('batch')}
-                disabled={loading || workflowLoading}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed"
-              >
-                대량 크롤링
-              </button>
-              <button
-                onClick={handleFullCrawl}
-                disabled={loading || workflowLoading}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed font-medium"
-              >
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleWorkflowCrawl('batch')}
+              disabled={loading || workflowLoading}
+              className="px-3 py-2 sm:px-4 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <span className="block sm:hidden">📊 대량크롤링</span>
+              <span className="hidden sm:block">대량 크롤링</span>
+            </button>
+
+            <button
+              onClick={handleFullCrawl}
+              disabled={loading || workflowLoading}
+              className="px-3 py-2 sm:px-4 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              <span className="block sm:hidden">🚀 전체크롤링</span>
+              <span className="hidden sm:block">
                 {loading ? "전체 크롤링 중..." : "🚀 전체 크롤링 (4,332개)"}
-              </button>
-            </div>
+              </span>
+            </button>
           </div>
         </div>
 
@@ -664,36 +680,40 @@ export default function DashboardPage() {
             subventions.map((item, index) => {
               const deadline = getDaysUntilDeadline(item["접수 마감일"]);
               return (
-                <div key={`${item.subventionId}-${index}`} className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {item.지원사업명}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${deadline.color}`}>
-                          {deadline.status}
-                        </span>
+                <div key={`${item.subventionId}-${index}`} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                  <div className="mb-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">
+                            {item.지원사업명}
+                          </h3>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${deadline.color} w-fit`}>
+                            {deadline.status}
+                          </span>
+                        </div>
                       </div>
-                      <div className="space-y-1 text-sm text-gray-600 mb-3">
+                    </div>
+                    <div className="space-y-2 text-sm text-gray-600 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                         <p><span className="font-medium">접수기관:</span> {item.접수기관}</p>
                         <p><span className="font-medium">지역:</span> {item.지역}</p>
                         <p><span className="font-medium">지원방식:</span> {item["지원 방식"]}</p>
                         <p><span className="font-medium">접수방법:</span> {item["접수 방법"]}</p>
                       </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                        <span>💰 지원금액: {formatAmount(item.지원금액)}</span>
-                        <span>📈 금리: {item.금리}</span>
-                        <span>📅 마감일: {formatDate(item["접수 마감일"])}</span>
-                        <span>🏢 출처: {item.출처}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-500 pt-2">
+                        <span className="flex items-center gap-1">💰 {formatAmount(item.지원금액)}</span>
+                        <span className="flex items-center gap-1">📈 {item.금리}</span>
+                        <span className="flex items-center gap-1">📅 {formatDate(item["접수 마감일"])}</span>
+                        <span className="flex items-center gap-1">🏢 {item.출처}</span>
                         {item.첨부파일 && item.첨부파일 !== "없음" && (
-                          <span>📎 첨부: {item.첨부파일}</span>
+                          <span className="flex items-center gap-1 col-span-full">📎 {item.첨부파일}</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end items-center pt-4 border-t border-gray-100">
+                  <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-100 gap-3 sm:gap-0">
                     <div className="space-x-2">
                       {item["공고 URL"] &&
                        item["공고 URL"] !== "확인 필요" &&
