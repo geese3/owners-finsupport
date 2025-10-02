@@ -702,12 +702,12 @@ export default function DashboardPage() {
                         <p><span className="font-medium">접수방법:</span> {item["접수 방법"]}</p>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-500 pt-2">
-                        <span className="flex items-center gap-1">💰 {formatAmount(item.지원금액)}</span>
-                        <span className="flex items-center gap-1">📈 {item.금리}</span>
-                        <span className="flex items-center gap-1">📅 {formatDate(item["접수 마감일"])}</span>
-                        <span className="flex items-center gap-1">🏢 {item.출처}</span>
+                        <span className="flex items-center gap-1">💰 <span className="font-medium">지원금액:</span> {formatAmount(item.지원금액)}</span>
+                        <span className="flex items-center gap-1">📈 <span className="font-medium">금리:</span> {item.금리}</span>
+                        <span className="flex items-center gap-1">📅 <span className="font-medium">마감일:</span> {formatDate(item["접수 마감일"])}</span>
+                        <span className="flex items-center gap-1">🏢 <span className="font-medium">출처:</span> {item.출처}</span>
                         {item.첨부파일 && item.첨부파일 !== "없음" && (
-                          <span className="flex items-center gap-1 col-span-full">📎 {item.첨부파일}</span>
+                          <span className="flex items-center gap-1 col-span-full">📎 <span className="font-medium">첨부파일:</span> {item.첨부파일}</span>
                         )}
                       </div>
                     </div>

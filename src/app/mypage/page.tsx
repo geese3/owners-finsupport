@@ -728,33 +728,34 @@ export default function MyPage() {
             {/* 로드맵 탭 - 새로운 모듈화된 컴포넌트 사용 */}
             {activeTab === 'roadmap' && (
               <div className="bg-white rounded-lg shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-6">
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-900">기업 성장 로드맵</h2>
-                        <p className="text-sm text-gray-600 mt-1">미션을 완수하고 포인트를 획득하세요!</p>
-                      </div>
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                  {/* 타이틀 */}
+                  <div className="mb-4">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">기업 성장 로드맵</h2>
+                    <p className="text-sm text-gray-600 mt-1">미션을 완수하고 포인트를 획득하세요!</p>
+                  </div>
 
-                      {/* 진행 상황 요약 - 가로 배치 */}
-                      <div className="flex space-x-3">
-                        <div className="text-center px-3 py-2 bg-yellow-50 rounded-lg border border-yellow-200 w-20">
-                          <div className="text-lg font-bold text-yellow-600">
-                            {missions.filter(m => m.status === 'completed').length}
-                          </div>
-                          <div className="text-xs text-yellow-800">완료</div>
+                  {/* 진행 상황과 포인트 */}
+                  <div className="flex justify-between items-center">
+                    {/* 진행 상황 카드 - 왼쪽 */}
+                    <div className="flex space-x-3">
+                      <div className="text-center px-3 py-2 bg-yellow-50 rounded-lg border border-yellow-200 w-16 sm:w-20">
+                        <div className="text-lg font-bold text-yellow-600">
+                          {missions.filter(m => m.status === 'completed').length}
                         </div>
-                        <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-20">
-                          <div className="text-lg font-bold text-blue-600">
-                            {missions.filter(m => m.status === 'available').length}
-                          </div>
-                          <div className="text-xs text-blue-800">진행 중</div>
+                        <div className="text-xs text-yellow-800">완료</div>
+                      </div>
+                      <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-16 sm:w-20">
+                        <div className="text-lg font-bold text-blue-600">
+                          {missions.filter(m => m.status === 'available').length}
                         </div>
+                        <div className="text-xs text-blue-800">진행 중</div>
                       </div>
                     </div>
 
+                    {/* 총 포인트 - 오른쪽 */}
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-600">{totalPoints.toLocaleString()}</div>
+                      <div className="text-xl sm:text-2xl font-bold text-blue-600">{totalPoints.toLocaleString()}</div>
                       <div className="text-sm text-gray-600">총 포인트</div>
                     </div>
                   </div>
@@ -784,33 +785,34 @@ export default function MyPage() {
             {/* 공공조달 로드맵 섹션 추가 */}
             {activeTab === 'roadmap' && (
               <div className="bg-white rounded-lg shadow-sm mt-8">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-6">
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-900">공공조달 로드맵</h2>
-                        <p className="text-sm text-gray-600 mt-1">공공조달 진출을 위한 단계별 미션을 완료하세요!</p>
-                      </div>
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                  {/* 타이틀 */}
+                  <div className="mb-4">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">공공조달 로드맵</h2>
+                    <p className="text-sm text-gray-600 mt-1">공공조달 진출을 위한 단계별 미션을 완료하세요!</p>
+                  </div>
 
-                      {/* 진행 상황 요약 - 가로 배치 */}
-                      <div className="flex space-x-3">
-                        <div className="text-center px-3 py-2 bg-green-50 rounded-lg border border-green-200 w-20">
-                          <div className="text-lg font-bold text-green-600">
-                            {procurementMissions.filter(m => m.status === 'completed').length}
-                          </div>
-                          <div className="text-xs text-green-800">완료</div>
+                  {/* 진행 상황과 포인트 */}
+                  <div className="flex justify-between items-center">
+                    {/* 진행 상황 카드 - 왼쪽 */}
+                    <div className="flex space-x-3">
+                      <div className="text-center px-3 py-2 bg-green-50 rounded-lg border border-green-200 w-16 sm:w-20">
+                        <div className="text-lg font-bold text-green-600">
+                          {procurementMissions.filter(m => m.status === 'completed').length}
                         </div>
-                        <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-20">
-                          <div className="text-lg font-bold text-blue-600">
-                            {procurementMissions.filter(m => m.status === 'available').length}
-                          </div>
-                          <div className="text-xs text-blue-800">진행 중</div>
+                        <div className="text-xs text-green-800">완료</div>
+                      </div>
+                      <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-16 sm:w-20">
+                        <div className="text-lg font-bold text-blue-600">
+                          {procurementMissions.filter(m => m.status === 'available').length}
                         </div>
+                        <div className="text-xs text-blue-800">진행 중</div>
                       </div>
                     </div>
 
+                    {/* 총 포인트 - 오른쪽 */}
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600">{procurementTotalPoints.toLocaleString()}</div>
+                      <div className="text-xl sm:text-2xl font-bold text-green-600">{procurementTotalPoints.toLocaleString()}</div>
                       <div className="text-sm text-gray-600">총 포인트</div>
                     </div>
                   </div>
@@ -839,33 +841,34 @@ export default function MyPage() {
             {/* 투자 로드맵 섹션 추가 */}
             {activeTab === 'roadmap' && (
               <div className="bg-white rounded-lg shadow-sm mt-8">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-6">
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-900">투자 로드맵</h2>
-                        <p className="text-sm text-gray-600 mt-1">스타트업 투자 유치를 위한 단계별 미션을 완료하세요!</p>
-                      </div>
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                  {/* 타이틀 */}
+                  <div className="mb-4">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">투자 로드맵</h2>
+                    <p className="text-sm text-gray-600 mt-1">스타트업 투자 유치를 위한 단계별 미션을 완료하세요!</p>
+                  </div>
 
-                      {/* 진행 상황 요약 - 가로 배치 */}
-                      <div className="flex space-x-3">
-                        <div className="text-center px-3 py-2 bg-purple-50 rounded-lg border border-purple-200 w-20">
-                          <div className="text-lg font-bold text-purple-600">
-                            {investmentMissions.filter(m => m.status === 'completed').length}
-                          </div>
-                          <div className="text-xs text-purple-800">완료</div>
+                  {/* 진행 상황과 포인트 */}
+                  <div className="flex justify-between items-center">
+                    {/* 진행 상황 카드 - 왼쪽 */}
+                    <div className="flex space-x-3">
+                      <div className="text-center px-3 py-2 bg-purple-50 rounded-lg border border-purple-200 w-16 sm:w-20">
+                        <div className="text-lg font-bold text-purple-600">
+                          {investmentMissions.filter(m => m.status === 'completed').length}
                         </div>
-                        <div className="text-center px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-200 w-20">
-                          <div className="text-lg font-bold text-indigo-600">
-                            {investmentMissions.filter(m => m.status === 'available').length}
-                          </div>
-                          <div className="text-xs text-indigo-800">진행 중</div>
+                        <div className="text-xs text-purple-800">완료</div>
+                      </div>
+                      <div className="text-center px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-200 w-16 sm:w-20">
+                        <div className="text-lg font-bold text-indigo-600">
+                          {investmentMissions.filter(m => m.status === 'available').length}
                         </div>
+                        <div className="text-xs text-indigo-800">진행 중</div>
                       </div>
                     </div>
 
+                    {/* 총 포인트 - 오른쪽 */}
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-purple-600">{investmentTotalPoints.toLocaleString()}</div>
+                      <div className="text-xl sm:text-2xl font-bold text-purple-600">{investmentTotalPoints.toLocaleString()}</div>
                       <div className="text-sm text-gray-600">총 포인트</div>
                     </div>
                   </div>

@@ -449,20 +449,17 @@ export default function ProcurementPage() {
                         <p><span className="font-medium">입찰방법:</span> {notice.bidMethdNm}</p>
                         <p><span className="font-medium">계약체결방법:</span> {notice.cntrctCnclsMthdNm}</p>
                       </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                        <span>💰 추정가격: {formatPrice(notice.presmptPrce)}</span>
-                        <span> 배정예산: {formatPrice(notice.asignBdgtAmt)}</span>
-                        <span>📅 공고일: {formatDateForDisplay(notice.bidNtceDt)}</span>
-                        <span>⏰ 마감: {formatDateForDisplay(notice.bidClseDt)}</span>
-                        {notice.opengDt && <span>🔍 개찰: {formatDateForDisplay(notice.opengDt)}</span>}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">💰 <span className="font-medium">추정가격:</span> {formatPrice(notice.presmptPrce)}</span>
+                        <span className="flex items-center gap-1">💳 <span className="font-medium">배정예산:</span> {formatPrice(notice.asignBdgtAmt)}</span>
+                        <span className="flex items-center gap-1">📅 <span className="font-medium">공고일:</span> {formatDateForDisplay(notice.bidNtceDt)}</span>
+                        <span className="flex items-center gap-1">⏰ <span className="font-medium">마감일:</span> {formatDateForDisplay(notice.bidClseDt)}</span>
+                        {notice.opengDt && <span className="flex items-center gap-1">🔍 <span className="font-medium">개찰일:</span> {formatDateForDisplay(notice.opengDt)}</span>}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                    <div className="text-sm text-gray-500">
-                      입찰공고번호: {notice.bidNtceNo}
-                    </div>
+                  <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-100 gap-3 sm:gap-0">
                     <div className="space-x-2">
                       <a
                         href={`https://www.g2b.go.kr/ep/invitation/publish/bidInfoDtl.do?bidno=${notice.bidNtceNo}&bidseq=000&reNtceYn=Y`}
@@ -470,17 +467,15 @@ export default function ProcurementPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                       >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
                         자세히 보기
                       </a>
-                      <a
-                        href={`https://www.g2b.go.kr/pt/menu/selectSubFrame.do?framesrc=/pt/menu/frameTgong.do?url=https://www.g2b.go.kr:8101/ep/invitation/publish/bidInfoDtl.do?bidno=${notice.bidNtceNo}&bidseq=000&reNtceYn=Y`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                      >
-                        프레임 링크
-                      </a>
                       <button className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
                         관심 등록
                       </button>
                     </div>

@@ -45,14 +45,28 @@ export const InvestmentRoadmapSlider: React.FC<InvestmentRoadmapSliderProps> = (
     }
   };
 
-  // 슬라이드 이동
+  // 슬라이드 이동 (반응형)
   const goToSlide = (slideIndex: number) => {
-    setCurrentSlide(Math.max(0, Math.min(slideIndex, totalSlides - 1)));
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      // 모바일: 개별 미션 기준
+      setCurrentSlide(Math.max(0, Math.min(slideIndex, missions.length - 1)));
+    } else {
+      // 데스크톱: 3개씩 묶인 슬라이드 기준
+      setCurrentSlide(Math.max(0, Math.min(slideIndex, totalSlides - 1)));
+    }
   };
 
   const nextSlide = () => {
-    if (currentSlide < totalSlides - 1) {
-      setCurrentSlide(currentSlide + 1);
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      // 모바일: 개별 미션으로 이동
+      if (currentSlide < missions.length - 1) {
+        setCurrentSlide(currentSlide + 1);
+      }
+    } else {
+      // 데스크톱: 슬라이드 단위로 이동
+      if (currentSlide < totalSlides - 1) {
+        setCurrentSlide(currentSlide + 1);
+      }
     }
   };
 
@@ -158,38 +172,45 @@ export const InvestmentRoadmapSlider: React.FC<InvestmentRoadmapSliderProps> = (
       {/* 로드맵 슬라이더 */}
       <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {/* 슬라이드 네비게이션 */}
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">투자 로드맵</h3>
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
+          <h3 className="hidden sm:block text-lg font-semibold text-gray-900">투자 로드맵</h3>
+          <div className="flex items-center justify-center sm:justify-end space-x-2 sm:space-x-4">
             <button
               onClick={() => setShowAllMissions(!showAllMissions)}
-              className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors"
+              className="hidden sm:block px-3 py-2 sm:px-4 bg-indigo-600 text-white text-xs sm:text-sm rounded-md hover:bg-indigo-700 transition-colors"
             >
               {showAllMissions ? '슬라이드 보기' : '전체보기'}
             </button>
             {!showAllMissions && (
               <div className="flex items-center space-x-2">
-            <button
-              onClick={prevSlide}
-              disabled={currentSlide === 0}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="text-sm text-gray-500">
-              {currentSlide + 1} / {totalSlides}
-            </span>
-            <button
-              onClick={nextSlide}
-              disabled={currentSlide === totalSlides - 1}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+                <button
+                  onClick={prevSlide}
+                  disabled={currentSlide === 0}
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sm text-gray-500 hidden sm:block">
+                  {currentSlide + 1} / {totalSlides}
+                </span>
+                <span className="text-sm text-gray-500 sm:hidden">
+                  {currentSlide + 1} / {missions.length}
+                </span>
+                <button
+                  onClick={nextSlide}
+                  disabled={
+                    typeof window !== 'undefined' && window.innerWidth < 640
+                      ? currentSlide === missions.length - 1
+                      : currentSlide === totalSlides - 1
+                  }
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
             )}
           </div>
@@ -198,51 +219,100 @@ export const InvestmentRoadmapSlider: React.FC<InvestmentRoadmapSliderProps> = (
         {/* 미션 표시 */}
         {showAllMissions ? (
           /* 전체보기 모드 */
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {missions.map((mission) => (
               <MissionCard key={mission.id} mission={mission} />
             ))}
           </div>
         ) : (
           /* 슬라이드 모드 */
-          <div className="overflow-hidden">
-            <div
-              className="flex transition-transform duration-300 ease-in-out"
-              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-            >
-              {Array.from({ length: totalSlides }, (_, slideIndex) => (
-                <div key={slideIndex} className="w-full flex-shrink-0">
-                  <div className="relative">
-                    {/* 연결선 */}
-                    <div className="absolute top-6 left-16 right-16 h-0.5 bg-gray-300"></div>
+          <>
+            {/* 데스크톱 슬라이드 */}
+            <div className="hidden sm:block overflow-hidden">
+              <div
+                className="flex transition-transform duration-300 ease-in-out"
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+              >
+                {Array.from({ length: totalSlides }, (_, slideIndex) => (
+                  <div key={slideIndex} className="w-full flex-shrink-0">
+                    <div className="relative">
+                      {/* 연결선 */}
+                      <div className="absolute top-6 left-16 right-16 h-0.5 bg-gray-300"></div>
 
-                    {/* 미션들 (3개씩) */}
-                    <div className="grid grid-cols-3 gap-8 px-8">
-                      {missions.slice(slideIndex * 3, slideIndex * 3 + 3).map((mission) => (
-                        <MissionCard key={mission.id} mission={mission} />
-                      ))}
+                      {/* 미션들 (3개씩) */}
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-8">
+                        {missions.slice(slideIndex * 3, slideIndex * 3 + 3).map((mission) => (
+                          <MissionCard key={mission.id} mission={mission} />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+
+            {/* 모바일 캐러셀 */}
+            <div className="sm:hidden overflow-hidden">
+              <div
+                className="flex transition-transform duration-300 ease-in-out"
+                style={{
+                  transform: `translateX(-${currentSlide * 90}%)`,
+                  paddingLeft: '5%',
+                  paddingRight: '5%'
+                }}
+              >
+                {missions.map((mission) => (
+                  <div
+                    key={mission.id}
+                    className="flex-shrink-0 w-full px-1"
+                  >
+                    <MissionCard mission={mission} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         )}
 
         {/* 슬라이드 인디케이터 (슬라이드 모드일 때만) */}
         {!showAllMissions && (
-          <div className="flex justify-center mt-6 space-x-2">
-            {Array.from({ length: totalSlides }, (_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  currentSlide === index ? 'bg-indigo-600' : 'bg-gray-300'
-                }`}
-              />
-            ))}
-          </div>
+          <>
+            {/* 데스크톱 인디케이터 */}
+            <div className="hidden sm:flex justify-center mt-6 space-x-2">
+              {Array.from({ length: totalSlides }, (_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    currentSlide === index ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            {/* 모바일 인디케이터 */}
+            <div className="flex sm:hidden justify-center mt-6 space-x-2">
+              {Array.from({ length: missions.length }, (_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    currentSlide === index ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
         )}
+
+        {/* 전체보기 버튼 (모바일용) */}
+        <div className="flex sm:hidden justify-center mt-4">
+          <button
+            onClick={() => setShowAllMissions(!showAllMissions)}
+            className="px-3 py-2 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            {showAllMissions ? '슬라이드 보기' : '전체보기'}
+          </button>
+        </div>
       </div>
 
       {/* 파일 업로드 모달 */}

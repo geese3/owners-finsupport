@@ -12,7 +12,6 @@ export const Navigation: React.FC = () => {
   const menuItems = [
     { href: '/dashboard', label: '지원사업' },
     { href: '/procurement', label: '공공조달' },
-    { href: '/roadmap-demo', label: '로드맵' },
     { href: '/mypage', label: '마이페이지' },
   ];
 
