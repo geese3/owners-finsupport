@@ -1,58 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Image
-                src="/owners-logo.png"
-                alt="오너스경영연구소"
-                width={300}
-                height={90}
-                className="h-20 w-auto"
-              />
-            </div>
-            <nav className="flex space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                지원사업
-              </Link>
-              <Link
-                href="/procurement"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                공공조달
-              </Link>
-              <Link
-                href="/mypage"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                마이페이지
-              </Link>
-              <Link
-                href="/auth/login"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                로그인
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-              >
-                무료 체험
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-gradient-to-b from-blue-50 to-white">
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RoadmapMission } from '@/app/api/roadmap/route';
 import { FileUploadModal } from './FileUploadModal';
 import { ConfettiAnimation } from './ConfettiAnimation';
@@ -22,8 +22,26 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
   const [selectedMission, setSelectedMission] = useState<RoadmapMission | null>(null);
   const [showAllMissions, setShowAllMissions] = useState(false);
   const [justCompletedMission, setJustCompletedMission] = useState<string | null>(null);
+  const [missionsPerSlide, setMissionsPerSlide] = useState(3);
 
-  const missionsPerSlide = 3;
+  // 화면 크기에 따른 슬라이드 아이템 수 조정
+  useEffect(() => {
+    const updateMissionsPerSlide = () => {
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth < 768) {
+          setMissionsPerSlide(1);
+        } else if (window.innerWidth < 1024) {
+          setMissionsPerSlide(2);
+        } else {
+          setMissionsPerSlide(3);
+        }
+      }
+    };
+
+    updateMissionsPerSlide();
+    window.addEventListener('resize', updateMissionsPerSlide);
+    return () => window.removeEventListener('resize', updateMissionsPerSlide);
+  }, []);
   const totalSlides = Math.ceil(missions.length / missionsPerSlide);
 
   // 미션 시작하기
@@ -105,7 +123,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
       </div>
 
       {/* 미션 정보 */}
-      <div className={`p-4 rounded-lg border-2 h-40 flex flex-col justify-between ${
+      <div className={`p-4 rounded-lg border-2 min-h-[10rem] sm:h-40 flex flex-col justify-between ${
         mission.status === 'completed'
           ? 'border-yellow-300 bg-yellow-50'
           : mission.status === 'available'
@@ -159,12 +177,12 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
       {/* 로드맵 슬라이더 */}
       <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {/* 슬라이드 네비게이션 */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
           <h3 className="text-lg font-semibold text-gray-900">성장 로드맵</h3>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-center sm:justify-start space-x-2 sm:space-x-4">
             <button
               onClick={() => setShowAllMissions(!showAllMissions)}
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+              className="px-3 py-2 sm:px-4 bg-blue-600 text-white text-xs sm:text-sm rounded-md hover:bg-blue-700 transition-colors"
             >
               {showAllMissions ? '슬라이드 보기' : '전체보기'}
             </button>
@@ -199,7 +217,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
         {/* 미션 표시 */}
         {showAllMissions ? (
           /* 전체보기 모드 */
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {missions.map((mission) => (
               <MissionCard key={mission.id} mission={mission} />
             ))}
@@ -218,7 +236,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
                     <div className="absolute top-6 left-16 right-16 h-0.5 bg-gray-300"></div>
 
                     {/* 미션들 (3개씩) */}
-                    <div className="grid grid-cols-3 gap-8 px-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 px-4 sm:px-8">
                       {missions.slice(slideIndex * 3, slideIndex * 3 + 3).map((mission) => (
                         <MissionCard key={mission.id} mission={mission} />
                       ))}

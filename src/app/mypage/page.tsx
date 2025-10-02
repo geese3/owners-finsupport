@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { RoadmapSlider } from '@/components/RoadmapSlider';
@@ -246,46 +245,7 @@ export default function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Link href="/">
-                <Image
-                  src="/owners-logo.png"
-                  alt="오너스경영연구소"
-                  width={300}
-                  height={90}
-                  className="h-20 w-auto"
-                />
-              </Link>
-            </div>
-            <nav className="flex space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                지원사업
-              </Link>
-              <Link
-                href="/procurement"
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                공공조달
-              </Link>
-              <Link
-                href="/mypage"
-                className="text-blue-600 bg-blue-50 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                마이페이지
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-gray-50">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
