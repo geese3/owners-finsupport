@@ -346,7 +346,8 @@ export default function ProcurementPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               상태 필터
             </label>
-            <div className="flex space-x-4">
+            {/* 모바일: 필터 버튼들만 중앙 배치 */}
+            <div className="flex justify-center sm:hidden space-x-4 mb-4">
               <button
                 onClick={() => setStatusFilter("all")}
                 className={`px-4 py-2 rounded-md text-sm font-medium ${
@@ -378,12 +379,53 @@ export default function ProcurementPage() {
                 마감
               </button>
             </div>
+
+            {/* 데스크톱: 필터 버튼들(좌측)과 검색 버튼(우측)을 같은 줄에 배치 */}
+            <div className="hidden sm:flex sm:justify-between sm:items-center">
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setStatusFilter("all")}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    statusFilter === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setStatusFilter("ongoing")}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    statusFilter === "ongoing"
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  진행중
+                </button>
+                <button
+                  onClick={() => setStatusFilter("closed")}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    statusFilter === "closed"
+                      ? "bg-red-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  마감
+                </button>
+              </div>
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
+              >
+                {loading ? "조회 중..." : "검색"}
+              </button>
+            </div>
           </div>
 
-          <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            {loading ? "데이터 조회 중..." : `총 ${totalCount}개의 입찰공고 중 ${bidNotices.length}개 표시 (${currentPage}페이지)`}
-          </div>
+          {/* 모바일: 검색 버튼을 필터 아래 중앙 배치 */}
+          <div className="flex justify-center sm:hidden">
             <button
               onClick={handleSearch}
               disabled={loading}
@@ -391,6 +433,20 @@ export default function ProcurementPage() {
             >
               {loading ? "조회 중..." : "검색"}
             </button>
+          </div>
+
+          {/* 모바일: 결과 텍스트를 검색 버튼 아래 중앙 배치 */}
+          <div className="mt-4 text-center sm:hidden">
+            <div className="text-sm text-gray-600">
+              {loading ? "데이터 조회 중..." : `총 ${totalCount}개의 입찰공고 중 ${bidNotices.length}개 표시 (${currentPage}페이지)`}
+            </div>
+          </div>
+
+          {/* 데스크톱: 결과 텍스트 */}
+          <div className="hidden sm:block mt-4">
+            <div className="text-sm text-gray-600">
+              {loading ? "데이터 조회 중..." : `총 ${totalCount}개의 입찰공고 중 ${bidNotices.length}개 표시 (${currentPage}페이지)`}
+            </div>
           </div>
         </div>
 

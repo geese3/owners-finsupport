@@ -74,6 +74,66 @@ interface SubventionItem {
   businessTypeCode: string;
 }
 
+// API 응답 타입 정의
+interface SubventionListItem {
+  subventionId: string;
+}
+
+interface SubventionListResponse {
+  data: {
+    content: SubventionListItem[];
+    totalElements?: number;
+    totalPages?: number;
+    number?: number;
+    size?: number;
+  };
+  success?: boolean;
+  message?: string;
+}
+
+interface SubventionArea {
+  areaName: string;
+  areaCode?: string;
+}
+
+interface SupportMethodCode {
+  description: string;
+  code?: string;
+}
+
+interface ApplicationMethodCode {
+  description: string;
+  code?: string;
+}
+
+interface AttachmentFile {
+  fileName: string;
+  fileUrl?: string;
+  fileSize?: number;
+}
+
+interface SubventionDetailData {
+  subventionAreaList: SubventionArea[];
+  receptionInstitutionName: string;
+  subventionTitleName: string;
+  subventionSupportMethodCodeList: SupportMethodCode[];
+  supportAmount: number;
+  interestRateDescription: string;
+  receptionEndYmd: string;
+  applicationMethodCodeList: ApplicationMethodCode[];
+  subventionUrlAddress?: string;
+  subventionHomepageUrl?: string;
+  pblancDetailUrl?: string;
+  attachmentList: AttachmentFile[];
+  businessTypeCode: string;
+}
+
+interface SubventionDetailResponse {
+  data: SubventionDetailData;
+  success?: boolean;
+  message?: string;
+}
+
 // 지원사업 ID 목록 크롤링
 async function fetchSubventionIds(industry: string, area: string, page: number, size: number = 30): Promise<string[]> {
   const mainPageUrl = "https://internal.pay.naver.com/partner/api/subvention/list";
@@ -106,14 +166,21 @@ async function fetchSubventionIds(industry: string, area: string, page: number, 
     });
 
     if (response.status === 200) {
-      const data = await response.json();
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data: SubventionListResponse = await response.json();
 
-      if (!data || !data.data || !data.data.content) {
-        console.log(`페이지 ${page}에서 데이터가 비어 있습니다.`);
+        if (!data || !data.data || !data.data.content) {
+          console.log(`페이지 ${page}에서 데이터가 비어 있습니다.`);
+          return [];
+        }
+
+        return data.data.content.map((item: SubventionListItem) => item.subventionId);
+      } else {
+        const text = await response.text();
+        console.error(`페이지 ${page}에서 JSON이 아닌 응답 수신:`, text.substring(0, 100));
         return [];
       }
-
-      return data.data.content.map((item: any) => item.subventionId);
     } else {
       console.error(`페이지 ${page}에서 데이터를 가져오는 데 실패했습니다. 상태 코드: ${response.status}`);
       return [];
@@ -138,86 +205,93 @@ async function scrapeDetailPage(subventionId: string, retries: number = 3): Prom
       });
 
       if (response.status === 200) {
-        const data = await response.json();
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data: SubventionDetailResponse = await response.json();
 
-        if (!data || !data.data) {
-          console.log(`${subventionId}의 상세 데이터가 비어 있습니다.`);
+          if (!data || !data.data) {
+            console.log(`${subventionId}의 상세 데이터가 비어 있습니다.`);
+            return null;
+          }
+
+          const details: SubventionDetailData = data.data;
+
+          // 데이터 처리
+          const area = details.subventionAreaList?.map((a: SubventionArea) =>
+            a?.areaName || "확인 필요"
+          ).join(", ") || "확인 필요";
+
+          const institution = details.receptionInstitutionName || "확인 필요";
+          const subventionTitle = details.subventionTitleName || "확인 필요";
+
+          const supportMethod = details.subventionSupportMethodCodeList?.map((m: SupportMethodCode) =>
+            m?.description || "확인 필요"
+          ).join(", ") || "확인 필요";
+
+          const supportAmount = details.supportAmount
+            ? `${details.supportAmount.toLocaleString()} 원`
+            : "확인 필요";
+
+          const interestRate = details.interestRateDescription || "확인 필요";
+
+          // 날짜 형식 처리 개선
+          let receptionEndDate = details.receptionEndYmd || "확인 필요";
+          if (receptionEndDate && receptionEndDate !== "확인 필요") {
+            // YYYYMMDD 형식을 YYYY-MM-DD로 변환
+            if (/^\d{8}$/.test(receptionEndDate)) {
+              receptionEndDate = `${receptionEndDate.substring(0, 4)}-${receptionEndDate.substring(4, 6)}-${receptionEndDate.substring(6, 8)}`;
+            }
+            // YYYY.MM.DD 형식을 YYYY-MM-DD로 변환
+            else if (receptionEndDate.includes('.')) {
+              receptionEndDate = receptionEndDate.replace(/\./g, '-');
+            }
+            // YYYY/MM/DD 형식을 YYYY-MM-DD로 변환
+            else if (receptionEndDate.includes('/')) {
+              receptionEndDate = receptionEndDate.replace(/\//g, '-');
+            }
+          }
+
+          const subventionUrl = details.subventionUrlAddress || details.subventionHomepageUrl || details.pblancDetailUrl || "확인 필요";
+
+          // URL 형식 정규화 (http:// 또는 https:// 추가)
+          let normalizedUrl = subventionUrl;
+          if (normalizedUrl && normalizedUrl !== "확인 필요") {
+            if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+              normalizedUrl = `https://${normalizedUrl}`;
+            }
+          }
+          const sourceName = details.receptionInstitutionName || "확인 필요";
+
+          const applicationMethod = details.applicationMethodCodeList?.map((m: ApplicationMethodCode) =>
+            m?.description || "확인 필요"
+          ).join(", ") || "확인 필요";
+
+          const attachments = details.attachmentList?.map((att: AttachmentFile) =>
+            att?.fileName || "첨부파일"
+          ).join(", ") || "없음";
+
+          const businessTypeCode = details.businessTypeCode || "ALL";
+
+          return {
+            subventionId,
+            지역: area,
+            접수기관: institution,
+            지원사업명: subventionTitle,
+            "지원 방식": supportMethod,
+            지원금액: supportAmount,
+            금리: interestRate,
+            "접수 마감일": receptionEndDate,
+            "접수 방법": applicationMethod,
+            "공고 URL": normalizedUrl,
+            출처: sourceName,
+            첨부파일: attachments,
+            businessTypeCode
+          };
+        } else {
+          const text = await response.text();
+          console.error(`${subventionId}에서 JSON이 아닌 응답 수신:`, text.substring(0, 100));
           return null;
         }
-
-        const details = data.data;
-
-        // 데이터 처리
-        const area = details.subventionAreaList?.map((a: any) =>
-          a?.areaName || "확인 필요"
-        ).join(", ") || "확인 필요";
-
-        const institution = details.receptionInstitutionName || "확인 필요";
-        const subventionTitle = details.subventionTitleName || "확인 필요";
-
-        const supportMethod = details.subventionSupportMethodCodeList?.map((m: any) =>
-          m?.description || "확인 필요"
-        ).join(", ") || "확인 필요";
-
-        const supportAmount = details.supportAmount
-          ? `${details.supportAmount.toLocaleString()} 원`
-          : "확인 필요";
-
-        const interestRate = details.interestRateDescription || "확인 필요";
-
-        // 날짜 형식 처리 개선
-        let receptionEndDate = details.receptionEndYmd || "확인 필요";
-        if (receptionEndDate && receptionEndDate !== "확인 필요") {
-          // YYYYMMDD 형식을 YYYY-MM-DD로 변환
-          if (/^\d{8}$/.test(receptionEndDate)) {
-            receptionEndDate = `${receptionEndDate.substring(0, 4)}-${receptionEndDate.substring(4, 6)}-${receptionEndDate.substring(6, 8)}`;
-          }
-          // YYYY.MM.DD 형식을 YYYY-MM-DD로 변환
-          else if (receptionEndDate.includes('.')) {
-            receptionEndDate = receptionEndDate.replace(/\./g, '-');
-          }
-          // YYYY/MM/DD 형식을 YYYY-MM-DD로 변환
-          else if (receptionEndDate.includes('/')) {
-            receptionEndDate = receptionEndDate.replace(/\//g, '-');
-          }
-        }
-
-        const subventionUrl = details.subventionUrlAddress || details.subventionHomepageUrl || details.pblancDetailUrl || "확인 필요";
-
-        // URL 형식 정규화 (http:// 또는 https:// 추가)
-        let normalizedUrl = subventionUrl;
-        if (normalizedUrl && normalizedUrl !== "확인 필요") {
-          if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
-            normalizedUrl = `https://${normalizedUrl}`;
-          }
-        }
-        const sourceName = details.receptionInstitutionName || "확인 필요";
-
-        const applicationMethod = details.applicationMethodCodeList?.map((m: any) =>
-          m?.description || "확인 필요"
-        ).join(", ") || "확인 필요";
-
-        const attachments = details.attachmentList?.map((att: any) =>
-          att?.fileName || "첨부파일"
-        ).join(", ") || "없음";
-
-        const businessTypeCode = details.businessTypeCode || "ALL";
-
-        return {
-          subventionId,
-          지역: area,
-          접수기관: institution,
-          지원사업명: subventionTitle,
-          "지원 방식": supportMethod,
-          지원금액: supportAmount,
-          금리: interestRate,
-          "접수 마감일": receptionEndDate,
-          "접수 방법": applicationMethod,
-          "공고 URL": normalizedUrl,
-          출처: sourceName,
-          첨부파일: attachments,
-          businessTypeCode
-        };
 
       } else if ([429, 500, 502, 503, 504].includes(response.status)) {
         const delay = Math.pow(2, attempt) * 1000; // 지수 백오프
