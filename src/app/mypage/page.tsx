@@ -52,6 +52,7 @@ export default function MyPage() {
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [activeTab, setActiveTab] = useState<'profile' | 'history' | 'bookmarks' | 'roadmap' | 'recommendations'>('profile');
+  const [activeRoadmapTab, setActiveRoadmapTab] = useState<'growth' | 'procurement' | 'investment'>('growth');
   const [loading, setLoading] = useState(true);
   const [showEnhancedProfileForm, setShowEnhancedProfileForm] = useState(false);
   const [hasEnhancedProfile, setHasEnhancedProfile] = useState(false);
@@ -725,170 +726,182 @@ export default function MyPage() {
               </div>
             )}
 
-            {/* 로드맵 탭 - 새로운 모듈화된 컴포넌트 사용 */}
+            {/* 로드맵 탭 - 탭 형태로 변경 */}
             {activeTab === 'roadmap' && (
               <div className="bg-white rounded-lg shadow-sm">
                 <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
                   {/* 타이틀 */}
-                  <div className="mb-4">
+                  <div className="mb-6">
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900">기업 성장 로드맵</h2>
                     <p className="text-sm text-gray-600 mt-1">미션을 완수하고 포인트를 획득하세요!</p>
                   </div>
 
-                  {/* 진행 상황과 포인트 */}
-                  <div className="flex justify-between items-center">
-                    {/* 진행 상황 카드 - 왼쪽 */}
-                    <div className="flex space-x-3">
-                      <div className="text-center px-3 py-2 bg-yellow-50 rounded-lg border border-yellow-200 w-16 sm:w-20">
-                        <div className="text-lg font-bold text-yellow-600">
-                          {missions.filter(m => m.status === 'completed').length}
-                        </div>
-                        <div className="text-xs text-yellow-800">완료</div>
-                      </div>
-                      <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-16 sm:w-20">
-                        <div className="text-lg font-bold text-blue-600">
-                          {missions.filter(m => m.status === 'available').length}
-                        </div>
-                        <div className="text-xs text-blue-800">진행 중</div>
-                      </div>
-                    </div>
-
-                    {/* 총 포인트 - 오른쪽 */}
-                    <div className="text-right">
-                      <div className="text-xl sm:text-2xl font-bold text-blue-600">{totalPoints.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">총 포인트</div>
-                    </div>
+                  {/* 로드맵 탭 네비게이션 */}
+                  <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6">
+                    <button
+                      onClick={() => setActiveRoadmapTab('growth')}
+                      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        activeRoadmapTab === 'growth'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      기업성장
+                    </button>
+                    <button
+                      onClick={() => setActiveRoadmapTab('procurement')}
+                      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        activeRoadmapTab === 'procurement'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      공공조달
+                    </button>
+                    <button
+                      onClick={() => setActiveRoadmapTab('investment')}
+                      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        activeRoadmapTab === 'investment'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      투자
+                    </button>
                   </div>
-                </div>
 
-                <div className="p-6">
-                  {roadmapLoading ? (
-                    <div className="text-center py-8">
-                      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-gray-600">로드맵 로딩 중...</p>
+                  {/* 선택된 탭에 따른 진행 상황과 포인트 */}
+                  {activeRoadmapTab === 'growth' && (
+                    <div className="flex justify-between items-center">
+                      <div className="flex space-x-3">
+                        <div className="text-center px-3 py-2 bg-yellow-50 rounded-lg border border-yellow-200 w-16 sm:w-20">
+                          <div className="text-lg font-bold text-yellow-600">
+                            {missions.filter(m => m.status === 'completed').length}
+                          </div>
+                          <div className="text-xs text-yellow-800">완료</div>
+                        </div>
+                        <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-16 sm:w-20">
+                          <div className="text-lg font-bold text-blue-600">
+                            {missions.filter(m => m.status === 'available').length}
+                          </div>
+                          <div className="text-xs text-blue-800">진행 중</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl sm:text-2xl font-bold text-blue-600">{totalPoints.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">총 포인트</div>
+                      </div>
                     </div>
-                  ) : roadmapError ? (
-                    <div className="text-center py-8">
-                      <p className="text-red-600">{roadmapError}</p>
+                  )}
+
+                  {activeRoadmapTab === 'procurement' && (
+                    <div className="flex justify-between items-center">
+                      <div className="flex space-x-3">
+                        <div className="text-center px-3 py-2 bg-green-50 rounded-lg border border-green-200 w-16 sm:w-20">
+                          <div className="text-lg font-bold text-green-600">
+                            {procurementMissions.filter(m => m.status === 'completed').length}
+                          </div>
+                          <div className="text-xs text-green-800">완료</div>
+                        </div>
+                        <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-16 sm:w-20">
+                          <div className="text-lg font-bold text-blue-600">
+                            {procurementMissions.filter(m => m.status === 'available').length}
+                          </div>
+                          <div className="text-xs text-blue-800">진행 중</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl sm:text-2xl font-bold text-green-600">{procurementTotalPoints.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">총 포인트</div>
+                      </div>
                     </div>
-                  ) : (
-                    <RoadmapSlider
-                      missions={missions}
-                      totalPoints={totalPoints}
-                      onMissionComplete={handleMissionComplete}
-                    />
+                  )}
+
+                  {activeRoadmapTab === 'investment' && (
+                    <div className="flex justify-between items-center">
+                      <div className="flex space-x-3">
+                        <div className="text-center px-3 py-2 bg-purple-50 rounded-lg border border-purple-200 w-16 sm:w-20">
+                          <div className="text-lg font-bold text-purple-600">
+                            {investmentMissions.filter(m => m.status === 'completed').length}
+                          </div>
+                          <div className="text-xs text-purple-800">완료</div>
+                        </div>
+                        <div className="text-center px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-200 w-16 sm:w-20">
+                          <div className="text-lg font-bold text-indigo-600">
+                            {investmentMissions.filter(m => m.status === 'available').length}
+                          </div>
+                          <div className="text-xs text-indigo-800">진행 중</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl sm:text-2xl font-bold text-purple-600">{investmentTotalPoints.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">총 포인트</div>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
 
-            {/* 공공조달 로드맵 섹션 추가 */}
-            {activeTab === 'roadmap' && (
-              <div className="bg-white rounded-lg shadow-sm mt-8">
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-                  {/* 타이틀 */}
-                  <div className="mb-4">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">공공조달 로드맵</h2>
-                    <p className="text-sm text-gray-600 mt-1">공공조달 진출을 위한 단계별 미션을 완료하세요!</p>
-                  </div>
-
-                  {/* 진행 상황과 포인트 */}
-                  <div className="flex justify-between items-center">
-                    {/* 진행 상황 카드 - 왼쪽 */}
-                    <div className="flex space-x-3">
-                      <div className="text-center px-3 py-2 bg-green-50 rounded-lg border border-green-200 w-16 sm:w-20">
-                        <div className="text-lg font-bold text-green-600">
-                          {procurementMissions.filter(m => m.status === 'completed').length}
-                        </div>
-                        <div className="text-xs text-green-800">완료</div>
-                      </div>
-                      <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-16 sm:w-20">
-                        <div className="text-lg font-bold text-blue-600">
-                          {procurementMissions.filter(m => m.status === 'available').length}
-                        </div>
-                        <div className="text-xs text-blue-800">진행 중</div>
-                      </div>
-                    </div>
-
-                    {/* 총 포인트 - 오른쪽 */}
-                    <div className="text-right">
-                      <div className="text-xl sm:text-2xl font-bold text-green-600">{procurementTotalPoints.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">총 포인트</div>
-                    </div>
-                  </div>
-                </div>
-
+                {/* 탭별 콘텐츠 */}
                 <div className="p-6">
-                  {procurementLoading ? (
-                    <div className="text-center py-8">
-                      <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-gray-600">공공조달 로드맵 로딩 중...</p>
-                    </div>
-                  ) : procurementError ? (
-                    <div className="text-center py-8">
-                      <p className="text-red-600">{procurementError}</p>
-                    </div>
-                  ) : (
-                    <ProcurementRoadmapSlider
-                      missions={procurementMissions}
-                      onMissionComplete={handleProcurementMissionComplete}
-                    />
+                  {activeRoadmapTab === 'growth' && (
+                    <>
+                      {roadmapLoading ? (
+                        <div className="text-center py-8">
+                          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-gray-600">로드맵 로딩 중...</p>
+                        </div>
+                      ) : roadmapError ? (
+                        <div className="text-center py-8">
+                          <p className="text-red-600">{roadmapError}</p>
+                        </div>
+                      ) : (
+                        <RoadmapSlider
+                          missions={missions}
+                          totalPoints={totalPoints}
+                          onMissionComplete={handleMissionComplete}
+                        />
+                      )}
+                    </>
                   )}
-                </div>
-              </div>
-            )}
 
-            {/* 투자 로드맵 섹션 추가 */}
-            {activeTab === 'roadmap' && (
-              <div className="bg-white rounded-lg shadow-sm mt-8">
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-                  {/* 타이틀 */}
-                  <div className="mb-4">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">투자 로드맵</h2>
-                    <p className="text-sm text-gray-600 mt-1">스타트업 투자 유치를 위한 단계별 미션을 완료하세요!</p>
-                  </div>
-
-                  {/* 진행 상황과 포인트 */}
-                  <div className="flex justify-between items-center">
-                    {/* 진행 상황 카드 - 왼쪽 */}
-                    <div className="flex space-x-3">
-                      <div className="text-center px-3 py-2 bg-purple-50 rounded-lg border border-purple-200 w-16 sm:w-20">
-                        <div className="text-lg font-bold text-purple-600">
-                          {investmentMissions.filter(m => m.status === 'completed').length}
+                  {activeRoadmapTab === 'procurement' && (
+                    <>
+                      {procurementLoading ? (
+                        <div className="text-center py-8">
+                          <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-gray-600">공공조달 로드맵 로딩 중...</p>
                         </div>
-                        <div className="text-xs text-purple-800">완료</div>
-                      </div>
-                      <div className="text-center px-3 py-2 bg-indigo-50 rounded-lg border border-indigo-200 w-16 sm:w-20">
-                        <div className="text-lg font-bold text-indigo-600">
-                          {investmentMissions.filter(m => m.status === 'available').length}
+                      ) : procurementError ? (
+                        <div className="text-center py-8">
+                          <p className="text-red-600">{procurementError}</p>
                         </div>
-                        <div className="text-xs text-indigo-800">진행 중</div>
-                      </div>
-                    </div>
+                      ) : (
+                        <ProcurementRoadmapSlider
+                          missions={procurementMissions}
+                          onMissionComplete={handleProcurementMissionComplete}
+                        />
+                      )}
+                    </>
+                  )}
 
-                    {/* 총 포인트 - 오른쪽 */}
-                    <div className="text-right">
-                      <div className="text-xl sm:text-2xl font-bold text-purple-600">{investmentTotalPoints.toLocaleString()}</div>
-                      <div className="text-sm text-gray-600">총 포인트</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  {investmentLoading ? (
-                    <div className="text-center py-8">
-                      <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-gray-600">투자 로드맵 로딩 중...</p>
-                    </div>
-                  ) : investmentError ? (
-                    <div className="text-center py-8">
-                      <p className="text-red-600">{investmentError}</p>
-                    </div>
-                  ) : (
-                    <InvestmentRoadmapSlider
-                      missions={investmentMissions}
-                      onMissionComplete={handleInvestmentMissionComplete}
-                    />
+                  {activeRoadmapTab === 'investment' && (
+                    <>
+                      {investmentLoading ? (
+                        <div className="text-center py-8">
+                          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <p className="text-gray-600">투자 로드맵 로딩 중...</p>
+                        </div>
+                      ) : investmentError ? (
+                        <div className="text-center py-8">
+                          <p className="text-red-600">{investmentError}</p>
+                        </div>
+                      ) : (
+                        <InvestmentRoadmapSlider
+                          missions={investmentMissions}
+                          onMissionComplete={handleInvestmentMissionComplete}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               </div>
