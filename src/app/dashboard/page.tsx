@@ -523,7 +523,58 @@ export default function DashboardPage() {
 
         {/* 검색 필터 섹션 */}
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {/* 모바일: 업종과 지역 한 줄, 키워드 다음 줄 */}
+          <div className="sm:hidden space-y-4 mb-4">
+            {/* 업종과 지역 (한 줄에 배치) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  업종
+                </label>
+                <select
+                  value={searchFilters.industry}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, industry: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  {industryOptions.map(option => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  지역
+                </label>
+                <select
+                  value={searchFilters.area}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, area: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  {areaOptions.map(option => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 키워드 검색 (별도 줄) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                키워드
+              </label>
+              <input
+                type="text"
+                value={searchFilters.keyword}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, keyword: e.target.value }))}
+                placeholder="사업명으로 검색"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* 데스크톱: 기존 3열 레이아웃 유지 */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 업종

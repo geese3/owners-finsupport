@@ -275,7 +275,79 @@ export default function ProcurementPage() {
 
         {/* 검색 필터 섹션 */}
         <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* 모바일: 날짜 두 개 한 줄, 키워드 검색 다음 줄 */}
+          <div className="md:hidden space-y-4 mb-4">
+            {/* 날짜 입력 (한 줄에 배치) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  조회 시작일
+                </label>
+                <input
+                  type="date"
+                  value={dateRange.startDate ?
+                    `${dateRange.startDate.substring(0,4)}-${dateRange.startDate.substring(4,6)}-${dateRange.startDate.substring(6,8)}`
+                    : ""
+                  }
+                  onChange={(e) => {
+                    const date = e.target.value.replace(/-/g, '') + '0000';
+                    setDateRange(prev => {
+                      const newStartDate = date;
+                      // 시작일이 변경되면 종료일을 자동으로 1주일 후로 설정
+                      const startDate = new Date(
+                        parseInt(newStartDate.substring(0, 4)),
+                        parseInt(newStartDate.substring(4, 6)) - 1,
+                        parseInt(newStartDate.substring(6, 8))
+                      );
+                      const endDate = new Date(startDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 1주일 후
+                      const newEndDate = formatDateForAPI(endDate);
+
+                      return {
+                        startDate: newStartDate,
+                        endDate: newEndDate
+                      };
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  조회 종료일
+                </label>
+                <input
+                  type="date"
+                  value={dateRange.endDate ?
+                    `${dateRange.endDate.substring(0,4)}-${dateRange.endDate.substring(4,6)}-${dateRange.endDate.substring(6,8)}`
+                    : ""
+                  }
+                  onChange={(e) => {
+                    const date = e.target.value.replace(/-/g, '') + '2359';
+                    setDateRange(prev => ({ ...prev, endDate: date }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* 키워드 검색 (별도 줄) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                키워드 검색
+              </label>
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="공고명, 기관명으로 검색"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* 데스크톱: 기존 3열 레이아웃 유지 */}
+          <div className="hidden md:grid md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 조회 시작일
@@ -298,10 +370,10 @@ export default function ProcurementPage() {
                     );
                     const endDate = new Date(startDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 1주일 후
                     const newEndDate = formatDateForAPI(endDate);
-                    
-                    return { 
-                      startDate: newStartDate, 
-                      endDate: newEndDate 
+
+                    return {
+                      startDate: newStartDate,
+                      endDate: newEndDate
                     };
                   });
                 }}
@@ -346,8 +418,8 @@ export default function ProcurementPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               상태 필터
             </label>
-            {/* 모바일: 필터 버튼들만 중앙 배치 */}
-            <div className="flex justify-center sm:hidden space-x-4 mb-4">
+            {/* 모바일: 필터 버튼들을 전체 너비에 균등 배치 */}
+            <div className="grid grid-cols-3 gap-2 sm:hidden mb-4">
               <button
                 onClick={() => setStatusFilter("all")}
                 className={`px-4 py-2 rounded-md text-sm font-medium ${
@@ -424,12 +496,12 @@ export default function ProcurementPage() {
             </div>
           </div>
 
-          {/* 모바일: 검색 버튼을 필터 아래 중앙 배치 */}
-          <div className="flex justify-center sm:hidden">
+          {/* 모바일: 검색 버튼을 필터 아래 전체 너비로 배치 */}
+          <div className="sm:hidden">
             <button
               onClick={handleSearch}
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
+              className="w-full px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
             >
               {loading ? "조회 중..." : "검색"}
             </button>

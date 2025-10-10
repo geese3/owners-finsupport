@@ -56,6 +56,7 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [showEnhancedProfileForm, setShowEnhancedProfileForm] = useState(false);
   const [hasEnhancedProfile, setHasEnhancedProfile] = useState(false);
+  const [showTopButton, setShowTopButton] = useState(false);
 
   // 로드맵 훅 사용
   const {
@@ -164,6 +165,25 @@ export default function MyPage() {
     }
   };
 
+  // 스크롤 이벤트 감지 및 Top 버튼 표시/숨김
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setShowTopButton(scrollTop > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Top 버튼 클릭 핸들러
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   // 가상의 사용자 데이터 (실제로는 API에서 가져와야 함)
   useEffect(() => {
     // 가상 데이터 로드
@@ -249,9 +269,89 @@ export default function MyPage() {
     <div className="bg-gray-50">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 모바일 사용자 정보 카드 */}
+        <div className="lg:hidden bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-blue-600 font-semibold text-lg">
+                  {userInfo?.name?.charAt(0)}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-gray-900 truncate">{userInfo?.name}</h3>
+              <p className="text-sm text-gray-600 truncate">{userInfo?.company}</p>
+              <span className="inline-block mt-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                {userInfo?.planType} 플랜
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 모바일 탭 네비게이션 */}
+        <div className="lg:hidden mb-6">
+          <div className="bg-white rounded-lg shadow-sm p-1">
+            <div className="grid grid-cols-3 gap-1">
+              <button
+                onClick={() => setActiveTab('profile')}
+                className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'profile'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                프로필
+              </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'history'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                검색기록
+              </button>
+              <button
+                onClick={() => setActiveTab('bookmarks')}
+                className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'bookmarks'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                즐겨찾기
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1 mt-1">
+              <button
+                onClick={() => setActiveTab('recommendations')}
+                className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'recommendations'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                맞춤형 지원사업
+              </button>
+              <button
+                onClick={() => setActiveTab('roadmap')}
+                className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === 'roadmap'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                로드맵
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* 사이드바 */}
-          <div className="lg:col-span-1">
+          {/* 데스크톱 사이드바 */}
+          <div className="hidden lg:block lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="text-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{userInfo?.name}</h3>
@@ -920,6 +1020,29 @@ export default function MyPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Top 버튼 */}
+      {showTopButton && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          aria-label="페이지 상단으로 이동"
+        >
+          <svg
+            className="w-6 h-6 mx-auto"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 10l7-7m0 0l7 7m-7-7v18"
+            />
+          </svg>
+        </button>
       )}
     </div>
   );
