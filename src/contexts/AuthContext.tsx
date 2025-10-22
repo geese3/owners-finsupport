@@ -111,8 +111,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     console.log('🔓 Sign out process started')
+
     try {
-      const { error } = await supabase.auth.signOut()
+      // 타임아웃 설정 (5초)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Logout timeout')), 5000)
+      )
+
+      const signOutPromise = supabase.auth.signOut()
+
+      const result = await Promise.race([signOutPromise, timeoutPromise])
+      const { error } = result as any
+
       console.log('🔓 Supabase signOut result:', { error })
 
       if (error) {
@@ -123,22 +133,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ...(error as any).hint && { hint: (error as any).hint },
           ...(error as any).code && { code: (error as any).code }
         })
+        // 에러가 있어도 강제 로그아웃 진행
+        console.log('⚠️ Forcing logout despite error')
+        await forceLogout()
       } else {
         console.log('✅ Sign out successful, redirecting to home')
-        // 로그아웃 성공 시 홈으로 리디렉션 (Next.js router 사용)
-        try {
-          console.log('🔄 Using Next.js router to redirect to home')
-          router.push('/')
-          router.refresh() // 페이지 새로고침으로 상태 완전 초기화
-        } catch (routerError) {
-          console.warn('⚠️ Router failed, falling back to window.location')
-          if (typeof window !== 'undefined') {
-            window.location.href = '/'
-          }
-        }
+        await performRedirect()
       }
     } catch (err) {
       console.error('💥 Unexpected error during sign out:', err)
+      if ((err as Error).message === 'Logout timeout') {
+        console.log('⏰ Logout timed out, forcing logout')
+        await forceLogout()
+      } else {
+        // 다른 에러의 경우에도 강제 로그아웃
+        console.log('⚠️ Forcing logout due to error')
+        await forceLogout()
+      }
+    }
+  }
+
+  const forceLogout = async () => {
+    console.log('🔄 Force logout: Clearing local state')
+    // 로컬 상태 강제 초기화
+    setUser(null)
+    setSession(null)
+
+    // 로컬 스토리지 정리
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('supabase.auth.token')
+        localStorage.clear() // 모든 로컬 스토리지 정리
+        sessionStorage.clear() // 세션 스토리지도 정리
+        console.log('🧹 Local storage cleared')
+      } catch (storageError) {
+        console.warn('⚠️ Failed to clear storage:', storageError)
+      }
+    }
+
+    await performRedirect()
+  }
+
+  const performRedirect = async () => {
+    console.log('🔄 Performing redirect to home')
+    try {
+      console.log('🔄 Using Next.js router to redirect to home')
+      router.push('/')
+      router.refresh() // 페이지 새로고침으로 상태 완전 초기화
+    } catch (routerError) {
+      console.warn('⚠️ Router failed, falling back to window.location')
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     }
   }
 
