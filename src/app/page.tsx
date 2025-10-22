@@ -120,7 +120,7 @@ export default function Home() {
       {/* Hero Section */}
       <section
         data-section="hero"
-        className="hero-modern animate-fade-in min-h-screen flex items-center justify-center relative overflow-hidden"
+        className="hero-modern animate-fade-in min-h-screen flex items-center justify-center relative overflow-hidden pt-20 sm:pt-24 lg:pt-32"
         style={{
           background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, #0f0f0f 100%)',
           color: 'var(--color-primary-light)'
@@ -203,7 +203,7 @@ export default function Home() {
       {/* Stats Cards Section */}
       <section
         data-section="stats"
-        className="min-h-screen flex items-center justify-center relative"
+        className="min-h-screen flex items-center justify-center relative pt-20 sm:pt-24 lg:pt-32"
         style={{
           background: 'linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary-gray) 100%)'
         }}>
@@ -273,7 +273,7 @@ export default function Home() {
       {/* Features Section */}
       <section
         data-section="features"
-        className="min-h-screen flex items-center justify-center relative"
+        className="min-h-screen flex items-center justify-center relative pt-20 sm:pt-24 lg:pt-32"
         style={{
           background: 'linear-gradient(135deg, var(--color-primary-gray) 0%, var(--color-primary-light) 100%)'
         }}>
@@ -409,7 +409,7 @@ export default function Home() {
       {/* Process Section */}
       <section
         data-section="process"
-        className="min-h-screen flex items-center justify-center relative"
+        className="min-h-screen flex items-center justify-center relative pt-20 sm:pt-24 lg:pt-32"
         style={{
           background: 'linear-gradient(135deg, rgba(0, 102, 255, 0.05) 0%, rgba(0, 102, 255, 0.03) 50%, var(--color-primary-light) 100%)'
         }}>
@@ -483,7 +483,7 @@ export default function Home() {
       {/* CTA Section with Footer */}
       <section
         data-section="cta"
-        className="min-h-screen flex flex-col relative overflow-hidden"
+        className="min-h-screen flex flex-col relative overflow-hidden pt-20 sm:pt-24 lg:pt-32"
         style={{
           background: 'linear-gradient(135deg, var(--color-accent-blue) 0%, #0052cc 50%, #0369a1 100%)',
           color: 'var(--color-primary-light)'
