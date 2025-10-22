@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  turbopack: {
+    root: __dirname,
+  },
 };
 
 export default nextConfig;
