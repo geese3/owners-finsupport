@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 interface AuthContextType {
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     // 현재 세션 가져오기
@@ -45,9 +47,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 인증 상태 변경 리스너
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 Auth state changed:', { event, hasSession: !!session })
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
+
+        // 로그아웃 이벤트 처리
+        if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out, clearing local state')
+          setUser(null)
+          setSession(null)
+        }
 
         // 사용자 프로필 정보도 함께 생성
         if (event === 'SIGNED_IN' && session?.user) {
@@ -100,14 +110,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Error signing out:', error)
-    } else {
-      // 로그아웃 성공 시 홈으로 리디렉션
-      if (typeof window !== 'undefined') {
-        window.location.href = '/'
+    console.log('🔓 Sign out process started')
+    try {
+      const { error } = await supabase.auth.signOut()
+      console.log('🔓 Supabase signOut result:', { error })
+
+      if (error) {
+        console.error('❌ Error signing out:', error)
+        console.error('Error details:', {
+          message: error.message,
+          ...(error as any).details && { details: (error as any).details },
+          ...(error as any).hint && { hint: (error as any).hint },
+          ...(error as any).code && { code: (error as any).code }
+        })
+      } else {
+        console.log('✅ Sign out successful, redirecting to home')
+        // 로그아웃 성공 시 홈으로 리디렉션 (Next.js router 사용)
+        try {
+          console.log('🔄 Using Next.js router to redirect to home')
+          router.push('/')
+          router.refresh() // 페이지 새로고침으로 상태 완전 초기화
+        } catch (routerError) {
+          console.warn('⚠️ Router failed, falling back to window.location')
+          if (typeof window !== 'undefined') {
+            window.location.href = '/'
+          }
+        }
       }
+    } catch (err) {
+      console.error('💥 Unexpected error during sign out:', err)
     }
   }
 

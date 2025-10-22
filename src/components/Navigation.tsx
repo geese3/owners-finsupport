@@ -151,7 +151,10 @@ export const Navigation: React.FC = () => {
                     {user.user_metadata?.name || user.email?.split('@')[0]}님
                   </span>
                   <button
-                    onClick={signOut}
+                    onClick={() => {
+                      console.log('🖱️ Desktop logout button clicked');
+                      signOut();
+                    }}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isScrolled
                         ? 'text-gray-600 hover:text-brand'
@@ -258,6 +261,7 @@ export const Navigation: React.FC = () => {
                     </div>
                     <button
                       onClick={() => {
+                        console.log('📱 Mobile logout button clicked');
                         signOut();
                         closeMenu();
                       }}
