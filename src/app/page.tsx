@@ -232,7 +232,7 @@ export default function Home() {
               <div className="mb-4 gradient-text" style={{
                 fontSize: 'clamp(var(--fs-4xl), 6vw, var(--fs-5xl))',
                 fontWeight: 'var(--fw-extrabold)'
-              }}>1,500+</div>
+              }}>3,000+</div>
               <div className="font-bold text-2xl mb-3" style={{ color: 'var(--color-neutral-dark)' }}>활성 지원사업</div>
               <div className="text-lg" style={{ color: 'var(--color-neutral-medium)' }}>매일 업데이트</div>
             </div>
@@ -329,7 +329,7 @@ export default function Home() {
                 머신러닝 기반으로 <span style={{
                   fontWeight: 'var(--fw-semibold)',
                   color: 'var(--color-accent-blue)'
-                }}>우리 회사에 가장 적합한</span> 지원사업만 골라서 추천해드립니다.
+                }}>우리 회사에 가장 적합한 <br/> </span> 지원사업만 골라서 추천해드립니다.
               </p>
               <div className="mt-6 badge badge-primary">
                 정확도 98%
@@ -354,7 +354,7 @@ export default function Home() {
                     fontSize: 'var(--fs-2xl)',
                     fontWeight: 'var(--fw-bold)',
                     color: 'var(--color-primary-dark)'
-                  }}>실시간 알림</h3>
+                  }}>실시간 업데이트</h3>
               <p className="leading-relaxed"
                  style={{
                    fontSize: 'var(--fs-lg)',
@@ -364,7 +364,7 @@ export default function Home() {
                 새로운 지원사업이 공고되면 <span style={{
                   fontWeight: 'var(--fw-semibold)',
                   color: 'var(--color-accent-blue)'
-                }}>즉시 알려드려</span> 기회를 놓치지 않도록 도와드립니다.
+                }}>즉시 업데이트하여</span> 기회를 놓치지 않도록 도와드립니다.
               </p>
               <div className="mt-6 badge badge-primary">
                 24/7 모니터링
@@ -393,7 +393,7 @@ export default function Home() {
                 color: 'var(--color-neutral-medium)',
                 lineHeight: 'var(--lh-relaxed)'
               }}>
-                복잡한 서류 작업부터 진행 상황까지 <span style={{
+                복잡한 서류 작업부터 진행 상황까지 <br/> <span style={{
                   fontWeight: 'var(--fw-semibold)',
                   color: 'var(--color-accent-blue)'
                 }}>한 곳에서 쉽게</span> 관리할 수 있습니다.
@@ -457,7 +457,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-6"><Bot className="w-6 h-6 inline mr-2" />AI 분석</h3>
               <p className="text-gray-600 leading-relaxed text-lg mb-6">
-                AI가 <span className="font-semibold text-brand">1,500개 이상의 지원사업</span>을 분석해 맞춤 추천을 제공합니다.
+                AI가 <span className="font-semibold text-brand">3,000개 이상의 지원사업</span>을 분석해 맞춤 추천을 제공합니다.
               </p>
               <div className="inline-flex items-center px-4 py-2 bg-brand/10 text-brand rounded-full text-sm font-medium">
                 소요시간: 실시간
@@ -529,10 +529,10 @@ export default function Home() {
                color: 'var(--color-primary-light)',
                opacity: '0.95'
              }}>
-            복잡한 검색은 그만! <span style={{
+            복잡한 검색은 그만! <br/><span style={{
               fontWeight: 'var(--fw-bold)',
               color: 'var(--color-accent-cyan)'
-            }}>AI가 1분 만에</span> 우리 회사에 딱 맞는 지원사업을 찾아드립니다.
+            }}>AI와 담당 코치가 1분 만에</span> 우리 회사에 딱 맞는 지원사업을 찾아드립니다.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             {!loading && !user ? (
@@ -611,7 +611,7 @@ export default function Home() {
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              <span>24시간 고객지원</span>
+              <span>신속한 고객지원</span>
             </div>
           </div>
           </div>
