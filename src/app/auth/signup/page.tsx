@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { INDUSTRY_OPTIONS, REGION_OPTIONS } from "@/data/industry-codes";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
     companyName: "",
+    businessType: "개인사업자", // 개인사업자/법인사업자 선택
     businessNumber: "",
+    corporateNumber: "", // 법인등록번호 (법인인 경우만)
+    companySize: "", // 기업 규모
     industryCode: "",
     regionCode: "",
     email: "",
@@ -21,14 +27,72 @@ export default function SignupPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMessage, setSuccessMessage] = useState("");
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // 이미 로그인된 사용자는 대시보드로 리디렉션
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
+
+  // 사업자등록번호 포맷팅 (123-45-67890)
+  const formatBusinessNumber = (value: string) => {
+    const numbers = value.replace(/[^\d]/g, '');
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 5) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    } else if (numbers.length <= 10) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 5)}-${numbers.slice(5)}`;
+    }
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 5)}-${numbers.slice(5, 10)}`;
+  };
+
+  // 법인등록번호 포맷팅 (123456-1234567)
+  const formatCorporateNumber = (value: string) => {
+    const numbers = value.replace(/[^\d]/g, '');
+    if (numbers.length <= 6) {
+      return numbers;
+    } else if (numbers.length <= 13) {
+      return `${numbers.slice(0, 6)}-${numbers.slice(6)}`;
+    }
+    return `${numbers.slice(0, 6)}-${numbers.slice(6, 13)}`;
+  };
+
+  // 전화번호 포맷팅 (010-1234-5678)
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/[^\d]/g, '');
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    } else if (numbers.length <= 11) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+    }
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
 
+    let formattedValue = value;
+
+    // 숫자 포맷팅 적용
+    if (name === "businessNumber") {
+      formattedValue = formatBusinessNumber(value);
+    } else if (name === "corporateNumber") {
+      formattedValue = formatCorporateNumber(value);
+    } else if (name === "phone") {
+      formattedValue = formatPhoneNumber(value);
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : formattedValue
     }));
 
     // 실시간 유효성 검사
@@ -42,11 +106,31 @@ export default function SignupPage() {
 
     // 사업자등록번호 포맷 검사
     if (name === "businessNumber") {
-      const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
-      if (value && !businessNumberRegex.test(value)) {
-        setErrors(prev => ({ ...prev, businessNumber: "올바른 사업자등록번호 형식이 아닙니다. (예: 123-45-67890)" }));
-      } else {
+      const cleanNumber = formattedValue.replace(/-/g, '');
+      if (cleanNumber.length === 10) {
         setErrors(prev => ({ ...prev, businessNumber: "" }));
+      } else if (cleanNumber.length > 0) {
+        setErrors(prev => ({ ...prev, businessNumber: "사업자등록번호는 10자리입니다." }));
+      }
+    }
+
+    // 법인등록번호 포맷 검사
+    if (name === "corporateNumber") {
+      const cleanNumber = formattedValue.replace(/-/g, '');
+      if (cleanNumber.length === 13) {
+        setErrors(prev => ({ ...prev, corporateNumber: "" }));
+      } else if (cleanNumber.length > 0) {
+        setErrors(prev => ({ ...prev, corporateNumber: "법인등록번호는 13자리입니다." }));
+      }
+    }
+
+    // 전화번호 포맷 검사
+    if (name === "phone") {
+      const cleanNumber = formattedValue.replace(/-/g, '');
+      if (cleanNumber.length >= 10 && cleanNumber.length <= 11) {
+        setErrors(prev => ({ ...prev, phone: "" }));
+      } else if (cleanNumber.length > 0) {
+        setErrors(prev => ({ ...prev, phone: "올바른 전화번호 형식이 아닙니다." }));
       }
     }
   };
@@ -56,6 +140,10 @@ export default function SignupPage() {
 
     if (!formData.companyName) newErrors.companyName = "회사명을 입력해주세요.";
     if (!formData.businessNumber) newErrors.businessNumber = "사업자등록번호를 입력해주세요.";
+    if (formData.businessType === "법인사업자" && !formData.corporateNumber) {
+      newErrors.corporateNumber = "법인등록번호를 입력해주세요.";
+    }
+    if (!formData.companySize) newErrors.companySize = "기업 규모를 선택해주세요.";
     if (!formData.industryCode) newErrors.industryCode = "업종을 선택해주세요.";
     if (!formData.regionCode) newErrors.regionCode = "지역을 선택해주세요.";
     if (!formData.email) newErrors.email = "이메일을 입력해주세요.";
@@ -69,9 +157,17 @@ export default function SignupPage() {
     if (!formData.agreePrivacy) newErrors.agreePrivacy = "개인정보처리방침에 동의해주세요.";
 
     // 사업자등록번호 형식 검사
-    const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
-    if (formData.businessNumber && !businessNumberRegex.test(formData.businessNumber)) {
-      newErrors.businessNumber = "올바른 사업자등록번호 형식이 아닙니다. (예: 123-45-67890)";
+    const cleanBusinessNumber = formData.businessNumber.replace(/-/g, '');
+    if (cleanBusinessNumber && cleanBusinessNumber.length !== 10) {
+      newErrors.businessNumber = "사업자등록번호는 10자리여야 합니다.";
+    }
+
+    // 법인등록번호 형식 검사
+    if (formData.businessType === "법인사업자" && formData.corporateNumber) {
+      const cleanCorporateNumber = formData.corporateNumber.replace(/-/g, '');
+      if (cleanCorporateNumber.length !== 13) {
+        newErrors.corporateNumber = "법인등록번호는 13자리여야 합니다.";
+      }
     }
 
     setErrors(newErrors);
@@ -86,15 +182,49 @@ export default function SignupPage() {
     }
 
     setIsLoading(true);
+    setErrors({});
+    setSuccessMessage('');
 
-    // TODO: 실제 회원가입 API 연동
-    console.log("회원가입 데이터:", formData);
+    try {
+      // 선택된 업종과 지역 이름 찾기
+      const selectedIndustry = INDUSTRY_OPTIONS.find(item => item.code === formData.industryCode);
+      const selectedRegion = REGION_OPTIONS.find(item => item.code === formData.regionCode);
 
-    // 임시 로딩
-    setTimeout(() => {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.companyName, // 회사명을 이름으로 사용
+            company: formData.companyName,
+            businessNumber: formData.businessNumber,
+            businessType: formData.businessType,
+            corporateNumber: formData.businessType === "법인사업자" ? formData.corporateNumber : null,
+            companySize: formData.companySize,
+            industry: selectedIndustry?.name || formData.industryCode,
+            region: selectedRegion?.name || formData.regionCode,
+            phone: formData.phone,
+            planType: 'FREE',
+            agreeMarketing: formData.agreeMarketing
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        setSuccessMessage('회원가입이 완료되었습니다! 이메일을 확인해주세요.');
+        // 이메일 확인 후 로그인하라는 안내를 위해 바로 리디렉션하지 않음
+      }
+    } catch (error: any) {
+      if (error.message.includes('already registered')) {
+        setErrors({ email: '이미 가입된 이메일 주소입니다.' });
+      } else {
+        setErrors({ general: error.message || '회원가입 중 오류가 발생했습니다.' });
+      }
+    } finally {
       setIsLoading(false);
-      alert("회원가입 기능은 아직 개발 중입니다.");
-    }, 1000);
+    }
   };
 
   return (
@@ -116,7 +246,7 @@ export default function SignupPage() {
           이미 계정이 있으시다면{" "}
           <Link
             href="/auth/login"
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-medium text-brand hover:text-brand-500"
           >
             로그인하기
           </Link>
@@ -138,12 +268,31 @@ export default function SignupPage() {
                   required
                   value={formData.companyName}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                   placeholder="회사명을 입력하세요"
                 />
                 {errors.companyName && (
                   <p className="mt-1 text-sm text-red-600">{errors.companyName}</p>
                 )}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="businessType" className="block text-sm font-medium text-gray-700">
+                사업자 유형 *
+              </label>
+              <div className="mt-1">
+                <select
+                  id="businessType"
+                  name="businessType"
+                  required
+                  value={formData.businessType}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                >
+                  <option value="개인사업자">개인사업자</option>
+                  <option value="법인사업자">법인사업자</option>
+                </select>
               </div>
             </div>
 
@@ -156,14 +305,66 @@ export default function SignupPage() {
                   id="businessNumber"
                   name="businessNumber"
                   type="text"
+                  inputMode="numeric"
                   required
                   value={formData.businessNumber}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="123-45-67890"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                  placeholder="숫자만 입력"
+                  maxLength={12}
                 />
                 {errors.businessNumber && (
                   <p className="mt-1 text-sm text-red-600">{errors.businessNumber}</p>
+                )}
+              </div>
+            </div>
+
+            {/* 법인사업자인 경우만 법인등록번호 입력 표시 */}
+            {formData.businessType === "법인사업자" && (
+              <div>
+                <label htmlFor="corporateNumber" className="block text-sm font-medium text-gray-700">
+                  법인등록번호 *
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="corporateNumber"
+                    name="corporateNumber"
+                    type="text"
+                    inputMode="numeric"
+                    required={formData.businessType === "법인사업자"}
+                    value={formData.corporateNumber}
+                    onChange={handleInputChange}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                    placeholder="숫자만 입력"
+                    maxLength={14}
+                  />
+                  {errors.corporateNumber && (
+                    <p className="mt-1 text-sm text-red-600">{errors.corporateNumber}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="companySize" className="block text-sm font-medium text-gray-700">
+                기업 규모 *
+              </label>
+              <div className="mt-1">
+                <select
+                  id="companySize"
+                  name="companySize"
+                  required
+                  value={formData.companySize}
+                  onChange={handleInputChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                >
+                  <option value="">기업 규모를 선택하세요</option>
+                  <option value="소기업">소기업 (50명 미만)</option>
+                  <option value="중기업">중기업 (50명 이상 ~ 300명 미만)</option>
+                  <option value="대기업">대기업 (300명 이상)</option>
+                </select>
+                {errors.companySize && (
+                  <p className="mt-1 text-sm text-red-600">{errors.companySize}</p>
                 )}
               </div>
             </div>
@@ -179,7 +380,7 @@ export default function SignupPage() {
                   required
                   value={formData.industryCode}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                 >
                   <option value="">업종을 선택하세요</option>
                   {INDUSTRY_OPTIONS.map((industry) => (
@@ -205,7 +406,7 @@ export default function SignupPage() {
                   required
                   value={formData.regionCode}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                 >
                   <option value="">지역을 선택하세요</option>
                   {REGION_OPTIONS.map((region) => (
@@ -233,7 +434,7 @@ export default function SignupPage() {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                   placeholder="example@company.com"
                 />
                 {errors.email && (
@@ -251,11 +452,13 @@ export default function SignupPage() {
                   id="phone"
                   name="phone"
                   type="tel"
+                  inputMode="numeric"
                   required
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="010-1234-5678"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
+                  placeholder="숫자만 입력"
+                  maxLength={13}
                 />
                 {errors.phone && (
                   <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
@@ -276,7 +479,7 @@ export default function SignupPage() {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                   placeholder="8자 이상 입력하세요"
                 />
                 {errors.password && (
@@ -298,7 +501,7 @@ export default function SignupPage() {
                   required
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                   placeholder="비밀번호를 다시 입력하세요"
                 />
                 {errors.confirmPassword && (
@@ -315,11 +518,11 @@ export default function SignupPage() {
                   type="checkbox"
                   checked={formData.agreeTerms}
                   onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-brand focus:ring-brand-500 border-gray-300 rounded"
                 />
                 <label htmlFor="agreeTerms" className="ml-2 block text-sm text-gray-900">
                   <span className="text-red-500">*</span>
-                  <a href="#" className="text-blue-600 hover:text-blue-500 underline ml-1">
+                  <a href="#" className="text-brand hover:text-brand-500 underline ml-1">
                     이용약관
                   </a>에 동의합니다
                 </label>
@@ -335,11 +538,11 @@ export default function SignupPage() {
                   type="checkbox"
                   checked={formData.agreePrivacy}
                   onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-brand focus:ring-brand-500 border-gray-300 rounded"
                 />
                 <label htmlFor="agreePrivacy" className="ml-2 block text-sm text-gray-900">
                   <span className="text-red-500">*</span>
-                  <a href="#" className="text-blue-600 hover:text-blue-500 underline ml-1">
+                  <a href="#" className="text-brand hover:text-brand-500 underline ml-1">
                     개인정보처리방침
                   </a>에 동의합니다
                 </label>
@@ -355,7 +558,7 @@ export default function SignupPage() {
                   type="checkbox"
                   checked={formData.agreeMarketing}
                   onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-brand focus:ring-brand-500 border-gray-300 rounded"
                 />
                 <label htmlFor="agreeMarketing" className="ml-2 block text-sm text-gray-900">
                   마케팅 정보 수신에 동의합니다 (선택)
@@ -363,11 +566,25 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* 성공 메시지 */}
+            {successMessage && (
+              <div className="text-sm text-center p-3 rounded-md text-green-800 bg-green-100 border border-green-200">
+                {successMessage}
+              </div>
+            )}
+
+            {/* 일반 에러 메시지 */}
+            {errors.general && (
+              <div className="text-sm text-center p-3 rounded-md text-red-800 bg-red-100 border border-red-200">
+                {errors.general}
+              </div>
+            )}
+
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:bg-brand-400 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center">
@@ -394,7 +611,7 @@ export default function SignupPage() {
             <div className="mt-6">
               <Link
                 href="/auth/login"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
               >
                 이미 계정이 있나요? 로그인하기
               </Link>

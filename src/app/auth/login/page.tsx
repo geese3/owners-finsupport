@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -10,6 +13,16 @@ export default function LoginPage() {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // 이미 로그인된 사용자는 대시보드로 리디렉션
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,15 +35,25 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setMessage('');
 
-    // TODO: 실제 로그인 API 연동
-    console.log("로그인 시도:", formData);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    // 임시 로딩
-    setTimeout(() => {
+      if (error) throw error;
+
+      if (data.user) {
+        setMessage('로그인 성공!');
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      setMessage(error.message || '로그인 중 오류가 발생했습니다.');
+    } finally {
       setIsLoading(false);
-      alert("로그인 기능은 아직 개발 중입니다.");
-    }, 1000);
+    }
   };
 
   return (
@@ -53,7 +76,7 @@ export default function LoginPage() {
           아직 계정이 없으시다면{" "}
           <Link
             href="/auth/signup"
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-medium text-brand hover:text-brand-500"
           >
             회원가입하기
           </Link>
@@ -76,7 +99,7 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                   placeholder="example@company.com"
                 />
               </div>
@@ -95,7 +118,7 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-500 focus:border-brand-500"
                   placeholder="비밀번호를 입력하세요"
                 />
               </div>
@@ -107,7 +130,7 @@ export default function LoginPage() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-brand focus:ring-brand-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                   로그인 상태 유지
@@ -115,17 +138,27 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="#" className="font-medium text-brand hover:text-brand-500">
                   비밀번호를 잊으셨나요?
                 </a>
               </div>
             </div>
 
+            {message && (
+              <div className={`text-sm text-center p-3 rounded-md ${
+                message.includes('성공')
+                  ? 'text-green-800 bg-green-100 border border-green-200'
+                  : 'text-red-800 bg-red-100 border border-red-200'
+              }`}>
+                {message}
+              </div>
+            )}
+
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:bg-brand-400 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center">
@@ -152,7 +185,7 @@ export default function LoginPage() {
             <div className="mt-6">
               <Link
                 href="/auth/signup"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
               >
                 새 계정 만들기
               </Link>
