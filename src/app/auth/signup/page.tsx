@@ -194,6 +194,7 @@ export default function SignupPage() {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             name: formData.companyName, // 회사명을 이름으로 사용
             company: formData.companyName,
