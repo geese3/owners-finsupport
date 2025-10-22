@@ -111,7 +111,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleInputChange('employeeCount', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.employeeCount === option
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -132,7 +132,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleInputChange('annualRevenue', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.annualRevenue === option
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -198,7 +198,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleCheckboxChange('certifications', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.certifications.includes(option)
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -219,7 +219,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleInputChange('rdInvestment', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.rdInvestment === option
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -284,7 +284,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleCheckboxChange('investmentPriorities', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.investmentPriorities.includes(option)
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -305,7 +305,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleCheckboxChange('interestAreas', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.interestAreas.includes(option)
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -333,7 +333,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleCheckboxChange('preferredSupportTypes', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.preferredSupportTypes.includes(option)
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -354,7 +354,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
                     onClick={() => handleCheckboxChange('preferredInstitutions', option)}
                     className={`p-2 text-sm border rounded-md transition-colors ${
                       formData.preferredInstitutions.includes(option)
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-brand text-white border-brand'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -412,7 +412,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-brand h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / totalSteps) * 100}%` }}
             />
           </div>
@@ -437,7 +437,7 @@ export const EnhancedProfileForm: React.FC<EnhancedProfileFormProps> = ({
               <button
                 type="button"
                 onClick={() => setCurrentStep(Math.min(totalSteps, currentStep + 1))}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-6 py-2 bg-brand text-white rounded-md hover:bg-brand-700"
               >
                 다음
               </button>

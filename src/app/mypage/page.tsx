@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { RoadmapSlider } from '@/components/RoadmapSlider';
 import { useProcurementRoadmap } from '@/hooks/useProcurementRoadmap';
@@ -10,6 +12,7 @@ import { useInvestmentRoadmap } from '@/hooks/useInvestmentRoadmap';
 import { InvestmentRoadmapSlider } from '@/components/InvestmentRoadmapSlider';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { EnhancedProfileForm } from '@/components/EnhancedProfileForm';
+import { SupportCard } from '@/components/SupportCard';
 
 // 사용자 정보 타입
 interface UserInfo {
@@ -36,27 +39,54 @@ interface SearchHistory {
   searchDate: string;
 }
 
-// 즐겨찾기 타입
-interface BookmarkItem {
+// 첨부파일 타입
+interface AttachmentFile {
+  url: string;
+  name: string;
+}
+
+// 관심 지원사업 타입 (bookmarks 테이블 기반)
+interface FavoriteItem {
   id: string;
-  subventionId: string;
+  user_id: string;
+  item_type: string;
+  item_id: string;
   title: string;
-  institution: string;
-  deadline: string;
-  amount: string;
-  bookmarkedAt: string;
+  description: string;
+  url: string;
+  metadata: {
+    host_institution: string;
+    support_method: string;
+    support_amount: string;
+    application_deadline: string;
+    source: string;
+    attachments?: AttachmentFile[];
+    attachment_url?: string;
+    attachment_name?: string;
+  };
+  created_at: string;
 }
 
 export default function MyPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'history' | 'bookmarks' | 'roadmap' | 'recommendations'>('profile');
   const [activeRoadmapTab, setActiveRoadmapTab] = useState<'growth' | 'procurement' | 'investment'>('growth');
   const [loading, setLoading] = useState(true);
   const [showEnhancedProfileForm, setShowEnhancedProfileForm] = useState(false);
   const [hasEnhancedProfile, setHasEnhancedProfile] = useState(false);
   const [showTopButton, setShowTopButton] = useState(false);
+
+  // 인증 확인
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth');
+    }
+  }, [user, authLoading, router]);
 
   // 로드맵 훅 사용
   const {
@@ -130,6 +160,47 @@ export default function MyPage() {
     }
   };
 
+  // 사용자 관심 목록 가져오기
+  const fetchUserFavorites = async () => {
+    if (!user?.id) return;
+
+    setFavoritesLoading(true);
+    try {
+      const response = await fetch(`/api/favorites?user_id=${user.id}`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setFavorites(result.data);
+      }
+    } catch (error) {
+      console.error('관심 목록 로드 실패:', error);
+    } finally {
+      setFavoritesLoading(false);
+    }
+  };
+
+  // 관심 해제 함수
+  const handleRemoveFavorite = async (subventionId: string) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`/api/favorites?user_id=${user.id}&subvention_id=${subventionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // 즉시 UI에서 제거
+        setFavorites(prev => prev.filter(item => item.item_id !== subventionId));
+        alert('관심 해제가 완료되었습니다.');
+      } else {
+        throw new Error('관심 해제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('관심 해제 실패:', error);
+      alert(error instanceof Error ? error.message : '오류가 발생했습니다.');
+    }
+  };
+
   // 향상된 프로필 저장 핸들러
   const handleEnhancedProfileSubmit = async (profileData: Record<string, any>) => {
     try {
@@ -184,22 +255,22 @@ export default function MyPage() {
     });
   };
 
-  // 가상의 사용자 데이터 (실제로는 API에서 가져와야 함)
+  // 사용자 데이터 로드 (Supabase 인증 기반)
   useEffect(() => {
-    // 가상 데이터 로드
-    setTimeout(() => {
+    if (user) {
+      // 실제 사용자 데이터 설정
       setUserInfo({
-        id: "user001",
-        name: "홍길동",
-        email: "hong@example.com",
-        company: "(주)예시기업",
-        businessType: "법인",
-        businessNumber: "123-45-67890",
-        corporateNumber: "110111-1234567",
-        industry: "제조업",
-        region: "서울특별시",
-        joinDate: "2024-01-15",
-        planType: "스탠다드"
+        id: user.id,
+        name: user.user_metadata?.name || user.email?.split('@')[0] || "사용자",
+        email: user.email || "",
+        company: user.user_metadata?.company || "회사명 미입력",
+        businessType: user.user_metadata?.businessType || "개인사업자",
+        businessNumber: user.user_metadata?.businessNumber || "미입력",
+        corporateNumber: user.user_metadata?.corporateNumber || "",
+        industry: user.user_metadata?.industry || "업종 미선택",
+        region: user.user_metadata?.region || "지역 미선택",
+        joinDate: new Date(user.created_at).toLocaleDateString(),
+        planType: user.user_metadata?.planType || "FREE"
       });
 
       setSearchHistory([
@@ -229,40 +300,26 @@ export default function MyPage() {
         }
       ]);
 
-      setBookmarks([
-        {
-          id: "bookmark001",
-          subventionId: "sub001",
-          title: "2025년 스마트공장 구축 지원사업",
-          institution: "중소벤처기업부",
-          deadline: "2025-03-31",
-          amount: "최대 1억원",
-          bookmarkedAt: "2025-01-10"
-        },
-        {
-          id: "bookmark002",
-          subventionId: "sub002",
-          title: "미래차 부품기업 육성 프로그램",
-          institution: "산업통상자원부",
-          deadline: "2025-02-28",
-          amount: "최대 5천만원",
-          bookmarkedAt: "2025-01-09"
-        }
-      ]);
+      // 사용자 관심 목록 로드
+      fetchUserFavorites();
 
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [user]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">로딩 중...</p>
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // 인증되지 않은 경우 null 반환 (리디렉션 중)
   }
 
   return (
@@ -273,8 +330,8 @@ export default function MyPage() {
         <div className="lg:hidden bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-lg">
+              <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center">
+                <span className="text-brand font-semibold text-lg">
                   {userInfo?.name?.charAt(0)}
                 </span>
               </div>
@@ -282,7 +339,7 @@ export default function MyPage() {
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-gray-900 truncate">{userInfo?.name}</h3>
               <p className="text-sm text-gray-600 truncate">{userInfo?.company}</p>
-              <span className="inline-block mt-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+              <span className="inline-block mt-1 px-2 py-1 bg-brand-100 text-brand-800 text-xs font-medium rounded-full">
                 {userInfo?.planType} 플랜
               </span>
             </div>
@@ -297,7 +354,7 @@ export default function MyPage() {
                 onClick={() => setActiveTab('profile')}
                 className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
                   activeTab === 'profile'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand text-white'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -307,7 +364,7 @@ export default function MyPage() {
                 onClick={() => setActiveTab('history')}
                 className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
                   activeTab === 'history'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand text-white'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -317,11 +374,11 @@ export default function MyPage() {
                 onClick={() => setActiveTab('bookmarks')}
                 className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
                   activeTab === 'bookmarks'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand text-white'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                즐겨찾기
+                관심 지원사업
               </button>
             </div>
             <div className="grid grid-cols-2 gap-1 mt-1">
@@ -329,7 +386,7 @@ export default function MyPage() {
                 onClick={() => setActiveTab('recommendations')}
                 className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
                   activeTab === 'recommendations'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand text-white'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -339,7 +396,7 @@ export default function MyPage() {
                 onClick={() => setActiveTab('roadmap')}
                 className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
                   activeTab === 'roadmap'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-brand text-white'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -356,7 +413,7 @@ export default function MyPage() {
               <div className="text-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{userInfo?.name}</h3>
                 <p className="text-sm text-gray-600">{userInfo?.company}</p>
-                <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                <span className="inline-block mt-2 px-3 py-1 bg-brand-100 text-brand-800 text-xs font-medium rounded-full">
                   {userInfo?.planType} 플랜
                 </span>
               </div>
@@ -366,7 +423,7 @@ export default function MyPage() {
                   onClick={() => setActiveTab('profile')}
                   className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium ${
                     activeTab === 'profile'
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-brand-50 text-brand-700'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -376,7 +433,7 @@ export default function MyPage() {
                   onClick={() => setActiveTab('history')}
                   className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium ${
                     activeTab === 'history'
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-brand-50 text-brand-700'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -386,17 +443,17 @@ export default function MyPage() {
                   onClick={() => setActiveTab('bookmarks')}
                   className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium ${
                     activeTab === 'bookmarks'
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-brand-50 text-brand-700'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  즐겨찾기
+                  관심 지원사업
                 </button>
                 <button
                   onClick={() => setActiveTab('recommendations')}
                   className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium ${
                     activeTab === 'recommendations'
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-brand-50 text-brand-700'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -406,7 +463,7 @@ export default function MyPage() {
                   onClick={() => setActiveTab('roadmap')}
                   className={`w-full text-left px-4 py-2 rounded-md text-sm font-medium ${
                     activeTab === 'roadmap'
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-brand-50 text-brand-700'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -443,7 +500,7 @@ export default function MyPage() {
                       <p className="text-lg text-gray-900">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                           userInfo?.businessType === '법인'
-                            ? 'bg-blue-100 text-blue-800'
+                            ? 'bg-brand-100 text-brand-800'
                             : 'bg-green-100 text-green-800'
                         }`}>
                           {userInfo?.businessType}
@@ -474,7 +531,7 @@ export default function MyPage() {
                     </div>
                   </div>
                   <div className="mt-8">
-                    <button className="bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                    <button className="bg-brand text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors">
                       프로필 수정
                     </button>
                   </div>
@@ -518,7 +575,7 @@ export default function MyPage() {
                           <div className="mt-4 flex space-x-2">
                             <Link
                               href={`/dashboard?keyword=${encodeURIComponent(history.keyword)}&industry=${encodeURIComponent(history.industry)}&area=${encodeURIComponent(history.area)}`}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                              className="text-brand hover:text-brand-800 text-sm font-medium"
                             >
                               다시 검색
                             </Link>
@@ -531,49 +588,75 @@ export default function MyPage() {
               </div>
             )}
 
-            {/* 즐겨찾기 탭 */}
+            {/* 관심 지원사업 탭 */}
             {activeTab === 'bookmarks' && (
               <div className="bg-white rounded-lg shadow-sm">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900">즐겨찾기</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-semibold text-gray-900">관심 지원사업</h2>
+                    <div className="text-sm text-gray-600">
+                      총 {favorites.length}개
+                    </div>
+                  </div>
                 </div>
                 <div className="p-6">
-                  {bookmarks.length === 0 ? (
+                  {favoritesLoading ? (
+                    <div className="text-center py-12">
+                      <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-600">관심 목록을 불러오는 중...</p>
+                    </div>
+                  ) : favorites.length === 0 ? (
                     <div className="text-center py-12">
                       <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
-                      <p className="text-gray-500">즐겨찾기한 지원사업이 없습니다.</p>
+                      <p className="text-gray-500 mb-2">관심 등록한 지원사업이 없습니다.</p>
+                      <p className="text-gray-400 text-sm">지원사업 목록에서 관심 등록 버튼을 눌러보세요!</p>
+                      <Link
+                        href="/dashboard"
+                        className="inline-block mt-4 px-4 py-2 bg-brand text-white rounded-md hover:bg-brand-700 transition-colors text-sm"
+                      >
+                        지원사업 찾아보기
+                      </Link>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {bookmarks.map((bookmark) => (
-                        <div key={bookmark.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                {bookmark.title}
-                              </h3>
-                              <div className="text-sm text-gray-600 space-y-1">
-                                <p>접수기관: {bookmark.institution}</p>
-                                <p>지원금액: {bookmark.amount}</p>
-                                <p>접수마감: {bookmark.deadline}</p>
-                              </div>
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              즐겨찾기: {bookmark.bookmarkedAt}
-                            </div>
-                          </div>
-                          <div className="mt-4 flex space-x-2">
-                            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                              자세히 보기
-                            </button>
-                            <button className="text-red-600 hover:text-red-800 text-sm font-medium">
-                              즐겨찾기 제거
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                      {favorites.map((favorite) => {
+                        // 첨부파일 데이터 파싱 (metadata에서 추출)
+                        const getAttachments = (): AttachmentFile[] => {
+                          if (favorite.metadata.attachments && Array.isArray(favorite.metadata.attachments)) {
+                            return favorite.metadata.attachments;
+                          }
+
+                          // 기존 단일 첨부파일 처리
+                          if (favorite.metadata.attachment_url && favorite.metadata.attachment_name) {
+                            return [{
+                              url: favorite.metadata.attachment_url,
+                              name: favorite.metadata.attachment_name
+                            }];
+                          }
+
+                          return [];
+                        };
+
+                        return (
+                          <SupportCard
+                            key={favorite.id}
+                            title={favorite.title}
+                            hostInstitution={favorite.metadata.host_institution}
+                            supportMethod={favorite.metadata.support_method}
+                            supportAmount={favorite.metadata.support_amount}
+                            applicationDeadline={favorite.metadata.application_deadline}
+                            source={favorite.metadata.source}
+                            announcementUrl={favorite.url}
+                            attachments={getAttachments()}
+                            createdAt={favorite.created_at}
+                            showRemoveButton={true}
+                            onRemoveBookmark={() => handleRemoveFavorite(favorite.item_id)}
+                            variant="mypage"
+                          />
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -588,8 +671,8 @@ export default function MyPage() {
                     <div>
                       <h2 className="text-xl font-semibold text-gray-900">나에게 맞는 지원사업</h2>
                       <p className="text-sm text-gray-600 mt-1">
-                        업종: <span className="font-medium text-blue-600">{userInfo?.industry}</span> |
-                        지역: <span className="font-medium text-blue-600"> {userInfo?.region}</span>
+                        업종: <span className="font-medium text-brand">{userInfo?.industry}</span> |
+                        지역: <span className="font-medium text-brand"> {userInfo?.region}</span>
                       </p>
                     </div>
                     <div className="text-right">
@@ -602,11 +685,11 @@ export default function MyPage() {
                 <div className="p-6">
                   {/* 추가 정보 수집 프롬프트 */}
                   {!hasEnhancedProfile && (
-                    <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                    <div className="mb-6 p-6 bg-gradient-to-r from-brand-50 to-green-50 border border-brand-200 rounded-lg">
                       <div className="flex items-start space-x-4">
                         <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           </div>
@@ -621,7 +704,7 @@ export default function MyPage() {
                           <div className="flex space-x-3">
                             <button
                               onClick={() => setShowEnhancedProfileForm(true)}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                              className="px-4 py-2 bg-brand text-white rounded-md hover:bg-brand-700 transition-colors font-medium"
                             >
                               추가 정보 입력하기
                             </button>
@@ -657,7 +740,7 @@ export default function MyPage() {
                       onClick={() => setFilters({ ...filters, status: filters.status === 'active' ? undefined : 'active' })}
                       className={`px-3 py-1 text-xs rounded-full transition-colors ${
                         filters.status === 'active'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-brand-100 text-brand-800'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -667,7 +750,7 @@ export default function MyPage() {
                       onClick={() => setFilters({ ...filters, sortBy: 'deadline' })}
                       className={`px-3 py-1 text-xs rounded-full transition-colors ${
                         filters.sortBy === 'deadline'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-brand-100 text-brand-800'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -677,7 +760,7 @@ export default function MyPage() {
                       onClick={() => setFilters({ ...filters, sortBy: 'amount' })}
                       className={`px-3 py-1 text-xs rounded-full transition-colors ${
                         filters.sortBy === 'amount'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-brand-100 text-brand-800'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -687,7 +770,7 @@ export default function MyPage() {
                       onClick={() => setFilters({ ...filters, sortBy: 'matching' })}
                       className={`px-3 py-1 text-xs rounded-full transition-colors ${
                         filters.sortBy === 'matching'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-brand-100 text-brand-800'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -706,7 +789,7 @@ export default function MyPage() {
                   {/* 맞춤형 지원사업 목록 */}
                   {recommendationsLoading ? (
                     <div className="text-center py-12">
-                      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                       <p className="text-gray-600">맞춤형 지원사업을 불러오는 중...</p>
                     </div>
                   ) : recommendationsError ? (
@@ -744,7 +827,7 @@ export default function MyPage() {
                                    recommendation.status === 'deadline_approaching' ? '마감임박' : '마감'}
                                 </span>
                                 {recommendation.industry.slice(0, 2).map((industry, index) => (
-                                  <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                                  <span key={index} className="px-2 py-1 bg-brand-100 text-brand-800 text-xs font-medium rounded">
                                     {industry}
                                   </span>
                                 ))}
@@ -775,7 +858,7 @@ export default function MyPage() {
                                 </div>
                                 <div>
                                   <span className="text-gray-500">매칭도:</span>
-                                  <p className="font-medium text-blue-600">{recommendation.matchingScore}%</p>
+                                  <p className="font-medium text-brand">{recommendation.matchingScore}%</p>
                                 </div>
                               </div>
                             </div>
@@ -791,7 +874,7 @@ export default function MyPage() {
                             </div>
                           </div>
                           <div className="flex space-x-3">
-                            <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                            <button className="flex-1 bg-brand text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-brand-700 transition-colors">
                               자세히 보기
                             </button>
                             <button
@@ -811,7 +894,7 @@ export default function MyPage() {
                     <div className="text-center mt-8">
                       <button
                         onClick={() => setFilters({ ...filters, limit: undefined })}
-                        className="px-6 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+                        className="px-6 py-2 border border-brand text-brand rounded-md hover:bg-brand-50 transition-colors"
                       >
                         전체 지원사업 보기
                       </button>
@@ -842,7 +925,7 @@ export default function MyPage() {
                       onClick={() => setActiveRoadmapTab('growth')}
                       className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                         activeRoadmapTab === 'growth'
-                          ? 'bg-white text-blue-600 shadow-sm'
+                          ? 'bg-white text-brand shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
@@ -862,7 +945,7 @@ export default function MyPage() {
                       onClick={() => setActiveRoadmapTab('investment')}
                       className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                         activeRoadmapTab === 'investment'
-                          ? 'bg-white text-blue-600 shadow-sm'
+                          ? 'bg-white text-purple-600 shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
@@ -880,15 +963,15 @@ export default function MyPage() {
                           </div>
                           <div className="text-xs text-yellow-800">완료</div>
                         </div>
-                        <div className="text-center px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-16 sm:w-20">
-                          <div className="text-lg font-bold text-blue-600">
+                        <div className="text-center px-3 py-2 bg-brand-50 rounded-lg border border-brand-200 w-16 sm:w-20">
+                          <div className="text-lg font-bold text-brand">
                             {missions.filter(m => m.status === 'available').length}
                           </div>
-                          <div className="text-xs text-blue-800">진행 중</div>
+                          <div className="text-xs text-brand-800">진행 중</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xl sm:text-2xl font-bold text-blue-600">{totalPoints.toLocaleString()}</div>
+                        <div className="text-xl sm:text-2xl font-bold text-brand">{totalPoints.toLocaleString()}</div>
                         <div className="text-sm text-gray-600">총 포인트</div>
                       </div>
                     </div>
@@ -911,7 +994,7 @@ export default function MyPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xl sm:text-2xl font-bold text-green-600">{procurementTotalPoints.toLocaleString()}</div>
+                        <div className="text-xl sm:text-2xl font-bold text-blue-600">{procurementTotalPoints.toLocaleString()}</div>
                         <div className="text-sm text-gray-600">총 포인트</div>
                       </div>
                     </div>
@@ -947,7 +1030,7 @@ export default function MyPage() {
                     <>
                       {roadmapLoading ? (
                         <div className="text-center py-8">
-                          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                           <p className="text-gray-600">로드맵 로딩 중...</p>
                         </div>
                       ) : roadmapError ? (
@@ -1026,7 +1109,7 @@ export default function MyPage() {
       {showTopButton && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-brand hover:bg-brand-700 text-white rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
           aria-label="페이지 상단으로 이동"
         >
           <svg

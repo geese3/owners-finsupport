@@ -138,7 +138,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             <ul className="text-sm text-gray-600 space-y-1">
               {mission.requiredFiles.map((file, index) => (
                 <li key={index} className="flex items-center">
-                  <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                  <span className="w-2 h-2 bg-brand rounded-full mr-2"></span>
                   {file}
                 </li>
               ))}
@@ -154,8 +154,8 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
               isDragOver
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-blue-400'
+                ? 'border-brand bg-brand-50'
+                : 'border-gray-300 hover:border-brand-400'
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -173,12 +173,12 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             <label htmlFor="file-upload" className="cursor-pointer">
               <div className="flex flex-col items-center">
                 <svg className={`w-12 h-12 mb-3 transition-colors ${
-                  isDragOver ? 'text-blue-500' : 'text-gray-400'
+                  isDragOver ? 'text-brand' : 'text-gray-400'
                 }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p className="text-sm text-gray-600">
-                  <span className="font-medium text-blue-600">클릭하여 파일 선택</span> 또는 드래그하여 업로드
+                  <span className="font-medium text-brand">클릭하여 파일 선택</span> 또는 드래그하여 업로드
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   PDF, JPG, PNG, DOC, DOCX (최대 10MB)
@@ -243,7 +243,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             disabled={!uploadedFiles || uploadedFiles.length === 0 || isUploading}
             className={`flex-1 px-4 py-2 rounded transition-colors flex items-center justify-center ${
               uploadedFiles && uploadedFiles.length > 0 && !isUploading
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-brand text-white hover:bg-brand-700'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >

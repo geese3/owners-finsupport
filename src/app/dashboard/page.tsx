@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { SupportCard } from "@/components/SupportCard";
 
-// 네이버 지원사업 데이터 타입
+// 첨부파일 타입
+interface AttachmentFile {
+  url: string;
+  name: string;
+}
+
+// 정부지원사업 데이터 타입
 interface SubventionItem {
   subventionId: string;
   지역: string;
@@ -16,112 +25,39 @@ interface SubventionItem {
   "공고 URL": string;
   출처: string;
   첨부파일: string;
+  첨부파일URL?: string; // 기존 호환성
+  첨부파일목록?: AttachmentFile[]; // 여러 첨부파일 배열
   businessTypeCode: string;
+  rawData?: any; // 디버깅용 raw_data
+  showMethodDetail?: boolean; // 접수방법 상세창 표시 여부
 }
 
-interface CrawlResponse {
-  success: boolean;
-  data?: {
-    items: SubventionItem[];
-    totalCount: number;
-    page: number;
-    size: number;
-    requestedIds?: number;
-    successfulCrawls?: number;
-  };
-  error?: string;
-}
 
-interface WorkflowResponse {
-  success: boolean;
-  data?: {
-    executionId: string;
-    message: string;
-    statusUrl: string;
-  };
-  error?: string;
-}
 
-interface WorkflowStatus {
-  id: string;
-  workflowId: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  currentStep: number;
-  startTime: string;
-  endTime?: string;
-  progress: number;
-  results: any[];
-  errors: any[];
-  logs: string[];
-}
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
+  const isInitializing = useRef(false);
+
   const [subventions, setSubventions] = useState<SubventionItem[]>([]);
-  const [allSubventions, setAllSubventions] = useState<SubventionItem[]>([]); // 전체 데이터 저장
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(30);
   const [totalCount, setTotalCount] = useState(0);
-  const [isFullDataLoaded, setIsFullDataLoaded] = useState(false); // 전체 데이터 로드 여부
   const [searchFilters, setSearchFilters] = useState({
     industry: '전체',
     area: '전체',
     keyword: ''
   });
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favoriteLoading, setFavoriteLoading] = useState<Set<string>>(new Set());
 
-  // 워크플로우 관련 상태
-  const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus | null>(null);
-  const [workflowLoading, setWorkflowLoading] = useState(false);
 
-  // 클라이언트 사이드 필터링 함수
-  const filterSubventions = useCallback((data: SubventionItem[], filters: typeof searchFilters) => {
-    console.log('🔍 필터링 함수 실행:', {
-      총데이터: data.length,
-      필터: filters,
-      키워드있음: !!filters.keyword,
-      키워드값: filters.keyword,
-      지역필터: filters.area
-    });
-
-    if (!data || data.length === 0) {
-      console.log('❌ 필터링할 데이터가 없음');
-      return [];
-    }
-
-    const filtered = data.filter(item => {
-      // 키워드 검색 (가장 먼저 체크)
-      const keywordMatch = !filters.keyword || filters.keyword.trim() === '' ||
-        item.지원사업명?.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-        item.접수기관?.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-        item.출처?.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-        item["지원 방식"]?.toLowerCase().includes(filters.keyword.toLowerCase()) ||
-        item.지역?.toLowerCase().includes(filters.keyword.toLowerCase());
-
-      // 키워드가 있는데 매칭되지 않으면 바로 false 반환
-      if (filters.keyword && filters.keyword.trim() !== '' && !keywordMatch) {
-        return false;
-      }
-
-      // 지역 필터
-      const areaMatch = filters.area === '전체' ||
-        item.지역?.includes(filters.area) ||
-        item.출처?.includes(filters.area);
-
-      // 업종 필터 (간단한 키워드 매칭)
-      const industryMatch = filters.industry === '전체' ||
-        item.지원사업명?.includes(filters.industry === '제조업' ? '제조' : '') ||
-        item.지원사업명?.includes(filters.industry === '소매업(자동차 제외)' ? '소매' : '') ||
-        item.지원사업명?.includes(filters.industry === '음식점업' ? '음식' : '') ||
-        item.지원사업명?.includes(filters.industry === '정보통신업' ? '정보통신' : '') ||
-        item.지원사업명?.includes(filters.industry === '건설업' ? '건설' : '') ||
-        true; // 정확한 업종 매칭이 어려우므로 일단 모든 데이터 포함
-
-      return keywordMatch && areaMatch && industryMatch;
-    });
-
-    console.log('필터링 결과:', filtered.length, '개');
-    return filtered;
-  }, []);
 
   // 업종 옵션
   const industryOptions = [
@@ -137,215 +73,194 @@ export default function DashboardPage() {
     '전라남도', '경상북도', '경상남도', '제주특별자치도', '강원특별자치도', '전북특별자치도'
   ];
 
-  // 지원금액 포맷팅
-  const formatAmount = (amount: string): string => {
-    if (!amount || amount === "확인 필요") return "확인 필요";
 
-    // 이미 포맷된 경우 (천 단위 구분자 포함)
-    if (amount.includes(',')) return amount;
-
-    // 숫자만 있는 경우
-    const num = parseInt(amount.replace(/[^0-9]/g, ''));
-    if (isNaN(num)) return amount;
-
-    return num.toLocaleString() + '원';
-  };
-
-  // 날짜 포맷팅
-  const formatDate = (dateString: string): string => {
-    if (!dateString || dateString === "확인 필요") return "확인 필요";
-
-    // YY-MM-DD 형식인 경우 (2자리 연도를 4자리로 변환)
-    if (/^\d{2}-\d{2}-\d{2}$/.test(dateString)) {
-      const [year, month, day] = dateString.split('-');
-      const fullYear = parseInt(year) < 50 ? `20${year}` : `19${year}`; // 50 미만이면 20xx, 이상이면 19xx
-      return `${fullYear}-${month}-${day}`;
-    }
-
-    // 이미 YYYY-MM-DD 형식인 경우
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-
-    // YYYYMMDD 형식인 경우 (8자리)
-    if (dateString.length === 8 && /^\d{8}$/.test(dateString)) {
-      const year = dateString.substring(0, 4);
-      const month = dateString.substring(4, 6);
-      const day = dateString.substring(6, 8);
-      return `${year}-${month}-${day}`;
-    }
-
-    // YYYY.MM.DD 형식인 경우
-    if (dateString.includes('.')) {
-      return dateString.replace(/\./g, '-');
-    }
-
-    // YYYY/MM/DD 형식인 경우
-    if (dateString.includes('/')) {
-      return dateString.replace(/\//g, '-');
-    }
-
-    // 기타 형식은 그대로 반환
-    return dateString;
-  };
-
-  // 마감일까지 남은 일수 계산
-  const getDaysUntilDeadline = (dateString: string): { days: number; status: string; color: string } => {
-    if (!dateString || dateString === "확인 필요") {
-      return { days: 0, status: "확인 필요", color: "text-gray-500 bg-gray-100" };
-    }
-
-    let deadlineDate: Date;
+  // 사용자 관심 목록 가져오기
+  const fetchUserFavorites = async () => {
+    if (!user?.id) return;
 
     try {
-      // 먼저 날짜를 표준 형식으로 변환
-      const formattedDate = formatDate(dateString);
-
-      if (formattedDate === "확인 필요") {
-        return { days: 0, status: "확인 필요", color: "text-gray-500 bg-gray-100" };
-      }
-
-      // YYYY-MM-DD 형식으로 변환된 날짜를 파싱
-      if (formattedDate.includes('-')) {
-        deadlineDate = new Date(formattedDate);
-      } else {
-        // 날짜 파싱 실패
-        return { days: 0, status: "날짜 형식 오류", color: "text-gray-500 bg-gray-100" };
-      }
-
-      // 유효한 날짜인지 확인
-      if (isNaN(deadlineDate.getTime())) {
-        return { days: 0, status: "날짜 형식 오류", color: "text-gray-500 bg-gray-100" };
-      }
-
-      const today = new Date();
-      // 오늘 날짜를 00:00:00으로 설정
-      today.setHours(0, 0, 0, 0);
-      deadlineDate.setHours(0, 0, 0, 0);
-
-      const diffTime = deadlineDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays < 0) return { days: diffDays, status: "마감", color: "text-red-600 bg-red-50" };
-      if (diffDays === 0) return { days: 0, status: "오늘마감", color: "text-red-600 bg-red-50" };
-      if (diffDays <= 3) return { days: diffDays, status: `${diffDays}일 남음`, color: "text-orange-600 bg-orange-50" };
-      if (diffDays <= 7) return { days: diffDays, status: `${diffDays}일 남음`, color: "text-yellow-600 bg-yellow-50" };
-      return { days: diffDays, status: `${diffDays}일 남음`, color: "text-green-600 bg-green-50" };
-    } catch (error) {
-      console.error('날짜 파싱 오류:', dateString, error);
-      return { days: 0, status: "날짜 파싱 오류", color: "text-gray-500 bg-gray-100" };
-    }
-  };
-
-  // 워크플로우 실행
-  const runWorkflow = async (workflowId: string, params?: any) => {
-    setWorkflowLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/workflow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'run',
-          workflowId: workflowId,
-          params: params
-        })
-      });
-
-      const result: WorkflowResponse = await response.json();
+      const response = await fetch(`/api/favorites?user_id=${user.id}`);
+      const result = await response.json();
 
       if (result.success && result.data) {
-        // 워크플로우 상태 모니터링 시작
-        monitorWorkflow(result.data.executionId);
-      } else {
-        setError(result.error || '워크플로우 실행에 실패했습니다.');
+        const favoriteIds = new Set<string>(result.data.map((item: any) => item.item_id));
+        setFavorites(favoriteIds);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '워크플로우 실행 중 오류가 발생했습니다.');
-    } finally {
-      setWorkflowLoading(false);
+    } catch (error) {
+      console.error('관심 목록 로드 실패:', error);
     }
   };
 
-  // 워크플로우 상태 모니터링
-  const monitorWorkflow = async (executionId: string) => {
-    const checkStatus = async () => {
-      try {
-        const response = await fetch(`/api/workflow?action=status&executionId=${executionId}`);
-        const result = await response.json();
+  // 관심 등록/해제 함수
+  const handleFavoriteToggle = async (item: SubventionItem) => {
+    if (!user?.id) {
+      alert('로그인이 필요한 기능입니다.');
+      return;
+    }
 
-        if (result.success && result.data) {
-          setWorkflowStatus(result.data);
+    const subventionId = item.subventionId;
+    const isFavorite = favorites.has(subventionId);
 
-          // 완료되었으면 결과 데이터 추출
-          if (result.data.status === 'completed' && result.data.results.length > 0) {
-            const crawlResult = result.data.results.find((r: any) => r.stepId === 'crawl_naver' || r.stepId === 'batch_crawl_naver');
-            if (crawlResult && crawlResult.result.data && crawlResult.result.data.items) {
-              setSubventions(crawlResult.result.data.items);
-              setTotalCount(crawlResult.result.data.totalCount || crawlResult.result.data.items.length);
-            }
-          }
+    // 로딩 상태 추가
+    setFavoriteLoading(prev => new Set(prev).add(subventionId));
 
-          // 아직 실행 중이면 계속 모니터링
-          if (result.data.status === 'running' || result.data.status === 'pending') {
-            setTimeout(checkStatus, 2000); // 2초마다 상태 확인
+    try {
+      if (isFavorite) {
+        // 관심 해제
+        const response = await fetch(`/api/favorites?user_id=${user.id}&subvention_id=${subventionId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          setFavorites(prev => {
+            const newFavorites = new Set(prev);
+            newFavorites.delete(subventionId);
+            return newFavorites;
+          });
+        } else {
+          throw new Error('관심 해제에 실패했습니다.');
+        }
+      } else {
+        // 관심 등록
+        const response = await fetch('/api/favorites', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            subvention_id: subventionId,
+            support_title: item.지원사업명,
+            host_institution: item.접수기관,
+            support_method: item["지원 방식"],
+            support_amount: item.지원금액,
+            application_deadline: item["접수 마감일"],
+            announcement_url: item["공고 URL"],
+            source: item.출처,
+            attachments: item.첨부파일목록 || []
+          }),
+        });
+
+        if (response.ok) {
+          setFavorites(prev => new Set(prev).add(subventionId));
+        } else {
+          const errorData = await response.json();
+          if (response.status === 409) {
+            alert('이미 관심 등록된 지원사업입니다.');
+          } else {
+            throw new Error(errorData.error || '관심 등록에 실패했습니다.');
           }
         }
-      } catch (err) {
-        console.error('워크플로우 상태 확인 중 오류:', err);
       }
-    };
-
-    checkStatus();
+    } catch (error) {
+      console.error('관심 등록/해제 실패:', error);
+      alert(error instanceof Error ? error.message : '오류가 발생했습니다.');
+    } finally {
+      // 로딩 상태 제거
+      setFavoriteLoading(prev => {
+        const newLoading = new Set(prev);
+        newLoading.delete(subventionId);
+        return newLoading;
+      });
+    }
   };
 
-  // 직접 크롤링 (워크플로우 없이)
+  // URL 매개변수 업데이트 함수
+  const updateUrlParams = (newParams: {
+    page?: number;
+    limit?: number;
+    industry?: string;
+    area?: string;
+    keyword?: string;
+  }) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (newParams.page !== undefined) {
+      params.set('page', newParams.page.toString());
+    }
+    if (newParams.limit !== undefined) {
+      params.set('limit', newParams.limit.toString());
+    }
+    if (newParams.industry !== undefined && newParams.industry !== '전체') {
+      params.set('industry', newParams.industry);
+    } else if (newParams.industry === '전체') {
+      params.delete('industry');
+    }
+    if (newParams.area !== undefined && newParams.area !== '전체') {
+      params.set('area', newParams.area);
+    } else if (newParams.area === '전체') {
+      params.delete('area');
+    }
+    if (newParams.keyword !== undefined && newParams.keyword !== '') {
+      params.set('keyword', newParams.keyword);
+    } else if (newParams.keyword === '') {
+      params.delete('keyword');
+    }
+
+    router.push(`/dashboard?${params.toString()}`);
+  };
+
+  // 데이터베이스에서 지원사업 데이터 가져오기 (실시간 조회)
   const fetchSubventions = async (page: number = 1) => {
-    console.log('🌐 fetchSubventions 실행:', { page, searchFilters });
+    console.log('🌐 fetchSubventions 실행:', { page, searchFilters, itemsPerPage });
     setLoading(true);
     setError(null);
 
+    // 페이지 변경이 아닌 검색/필터 변경시에만 데이터 클리어
+    if (page === 1) {
+      setSubventions([]);
+    }
+
     try {
-      // 키워드 검색 시에는 더 많은 데이터를 요청
-      const size = searchFilters.keyword && searchFilters.keyword.trim() !== '' ? "50" : "10";
+      // API 파라미터 구성 (페이지당 항목 수 적용)
+      const limit = itemsPerPage; // 사용자가 선택한 페이지당 항목 수
+      const offset = (page - 1) * limit;
 
       const params = new URLSearchParams({
-        industry: searchFilters.industry,
-        area: searchFilters.area,
-        page: page.toString(),
-        size: size
+        limit: limit.toString(),
+        offset: offset.toString(),
+        status: 'active'
       });
 
-      const response = await fetch(`/api/crawl-finsupport?${params.toString()}`);
-      const result: CrawlResponse = await response.json();
+      // 필터 적용
+      if (searchFilters.keyword && searchFilters.keyword.trim() !== '') {
+        params.append('keyword', searchFilters.keyword.trim());
+      }
+
+      if (searchFilters.area && searchFilters.area !== '전체') {
+        params.append('region', encodeURIComponent(searchFilters.area));
+      }
+
+      // 업종 필터링은 키워드 검색에 포함 (간단한 매핑)
+      if (searchFilters.industry && searchFilters.industry !== '전체') {
+        const industryKeyword = searchFilters.industry === '제조업' ? '제조' :
+                               searchFilters.industry === '소매업(자동차 제외)' ? '소매' :
+                               searchFilters.industry === '음식점업' ? '음식' :
+                               searchFilters.industry === '정보통신업' ? '정보통신' :
+                               searchFilters.industry === '건설업' ? '건설' : '';
+
+        if (industryKeyword) {
+          const currentKeyword = params.get('keyword') || '';
+          const combinedKeyword = currentKeyword ? `${currentKeyword} ${industryKeyword}` : industryKeyword;
+          params.set('keyword', combinedKeyword);
+        }
+      }
+
+      console.log('🔍 API 요청 파라미터:', Object.fromEntries(params.entries()));
+
+      const response = await fetch(`/api/government-supports?${params.toString()}`);
+      const result = await response.json();
 
       if (result.success && result.data) {
-        let filteredItems = result.data.items;
+        const items = result.data;
 
-        // 키워드가 있는 경우 클라이언트 사이드 필터링 적용
-        if (searchFilters.keyword && searchFilters.keyword.trim() !== '') {
-          console.log('🔍 서버 데이터에 키워드 필터링 적용:', searchFilters.keyword);
-          filteredItems = result.data.items.filter(item =>
-            item.지원사업명?.toLowerCase().includes(searchFilters.keyword.toLowerCase()) ||
-            item.접수기관?.toLowerCase().includes(searchFilters.keyword.toLowerCase()) ||
-            item.출처?.toLowerCase().includes(searchFilters.keyword.toLowerCase()) ||
-            item["지원 방식"]?.toLowerCase().includes(searchFilters.keyword.toLowerCase()) ||
-            item.지역?.toLowerCase().includes(searchFilters.keyword.toLowerCase())
-          );
-          console.log('🔍 키워드 필터링 결과:', {
-            원본: result.data.items.length,
-            필터링후: filteredItems.length,
-            키워드: searchFilters.keyword
-          });
-        }
-
-        setSubventions(filteredItems);
-        setTotalCount(filteredItems.length);
+        setSubventions(items);
+        setTotalCount(result.total || items.length);
         setCurrentPage(page);
 
         console.log('✅ fetchSubventions 완료:', {
-          총결과수: filteredItems.length,
+          총결과수: items.length,
+          전체갯수: result.total,
           페이지: page,
           키워드적용여부: !!searchFilters.keyword
         });
@@ -360,155 +275,138 @@ export default function DashboardPage() {
     }
   };
 
-  // 검색 실행
+  // 검색 실행 (항상 데이터베이스 조회)
   const handleSearch = () => {
-    if (isFullDataLoaded) {
-      // 전체 데이터가 로드된 경우 클라이언트 사이드 필터링
-      const filteredData = filterSubventions(allSubventions, searchFilters);
-      setSubventions(filteredData);
-      setTotalCount(filteredData.length);
-      setCurrentPage(1);
-    } else {
-      // 전체 데이터가 로드되지 않은 경우 서버 사이드 검색
-      setCurrentPage(1);
-      fetchSubventions(1);
-    }
-  };
-
-  // 워크플로우로 크롤링 실행
-  const handleWorkflowCrawl = (workflowType: 'single' | 'batch') => {
-    const workflowId = workflowType === 'single' ? 'naver_finsupport_full' : 'naver_batch_crawl';
-    const params = {
+    updateUrlParams({
+      page: 1,
       industry: searchFilters.industry,
-      area: searchFilters.area
-    };
-
-    runWorkflow(workflowId, params);
+      area: searchFilters.area,
+      keyword: searchFilters.keyword
+    });
+    fetchSubventions(1);
+    // 페이지 상단으로 스크롤
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 전체 데이터 크롤링 (4,332개)
-  const handleFullCrawl = async () => {
-    console.log('전체 크롤링 시작');
-    setLoading(true);
-    setError(null);
 
-    try {
-      const response = await fetch('/api/crawl-finsupport', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          industry: '전체',
-          area: '전체',
-          maxPages: 144  // 144페이지 × 30개 = 4,320개 + 마지막 페이지 12개 = 4,332개
-        }),
-      });
-
-      console.log('API 응답 받음:', response.status);
-      const result: CrawlResponse = await response.json();
-      console.log('API 결과:', {
-        success: result.success,
-        itemsLength: result.data?.items?.length,
-        totalCount: result.data?.totalCount
-      });
-
-      if (result.success && result.data && result.data.items) {
-        console.log('데이터 저장 중:', result.data.items.length, '개');
-
-        // 샘플 데이터 로그
-        console.log('샘플 데이터:', result.data.items[0]);
-
-        // 상태 업데이트 전 현재 상태 로그
-        console.log('상태 업데이트 전:', {
-          currentAllSubventions: allSubventions.length,
-          currentIsFullDataLoaded: isFullDataLoaded,
-          currentSubventions: subventions.length
-        });
-
-        // 배치로 상태 업데이트 - React 18의 automatic batching을 활용
-        setAllSubventions(result.data.items); // 전체 데이터 저장
-        setSubventions(result.data.items); // 현재 표시 데이터도 업데이트
-        setTotalCount(result.data.totalCount);
-        setCurrentPage(1);
-        setIsFullDataLoaded(true); // 전체 데이터 로드 완료 표시
-
-        console.log('✅ 데이터 저장 완료:', {
-          저장된데이터수: result.data.items.length,
-          isFullDataLoaded설정: true,
-          totalCount: result.data.totalCount
-        });
-
-        alert(`전체 크롤링 완료! 총 ${result.data.totalCount}개의 지원사업을 불러왔습니다. 이제 실시간 검색/필터링이 가능합니다.`);
-      } else {
-        console.error('API 실패:', result.error);
-        setError(result.error || "전체 크롤링에 실패했습니다.");
-      }
-    } catch (err) {
-      console.error('크롤링 오류:', err);
-      setError(err instanceof Error ? err.message : "네트워크 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
-      console.log('크롤링 완료');
-    }
-  };
 
   // 페이지 변경
   const handlePageChange = (pageNo: number) => {
+    updateUrlParams({ page: pageNo });
     fetchSubventions(pageNo);
   };
 
-  // 컴포넌트 마운트 시 기본 데이터 로드
-  useEffect(() => {
-    fetchSubventions(1);
-  }, []);
+  // 페이지당 항목 수 변경
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+    updateUrlParams({ page: 1, limit: newItemsPerPage });
+    // 페이지 상단으로 스크롤
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  // 검색 필터 변경 시 처리 (디바운싱 적용)
+  // URL 매개변수에서 상태 초기화 (한 번만 실행)
   useEffect(() => {
-    const effectId = Math.random().toString(36).substring(2, 11);
-    console.log(`🔄 useEffect-${effectId} 실행:`, {
-      isFullDataLoaded,
-      allSubventionsLength: allSubventions.length,
-      searchFilters,
-      searchFiltersKeyword: searchFilters.keyword,
-      timestamp: new Date().toLocaleTimeString()
-    });
+    if (!isInitialized.current) {
+      const pageFromUrl = parseInt(searchParams.get('page') || '1');
+      const limitFromUrl = parseInt(searchParams.get('limit') || '30');
+      const industryFromUrl = searchParams.get('industry') || '전체';
+      const areaFromUrl = searchParams.get('area') || '전체';
+      const keywordFromUrl = searchParams.get('keyword') || '';
+
+      console.log('🔧 URL에서 상태 초기화:', {
+        pageFromUrl,
+        limitFromUrl,
+        industryFromUrl,
+        areaFromUrl,
+        keywordFromUrl
+      });
+
+      // 초기화 중임을 표시
+      isInitializing.current = true;
+
+      setCurrentPage(pageFromUrl);
+      setItemsPerPage(limitFromUrl);
+      setSearchFilters({
+        industry: industryFromUrl,
+        area: areaFromUrl,
+        keyword: keywordFromUrl
+      });
+
+      isInitialized.current = true;
+      fetchSubventions(pageFromUrl);
+
+      // 초기화 완료 후 플래그 해제
+      setTimeout(() => {
+        isInitializing.current = false;
+        console.log('🔄 초기화 완료 - 검색 필터 useEffect 활성화');
+      }, 100);
+    }
+  }, [searchParams]);
+
+  // 컴포넌트 마운트 시 기본 데이터 로드 - 제거됨 (위의 useEffect에서 처리)
+  // useEffect(() => {
+  //   fetchSubventions(currentPage);
+  // }, []);
+
+  // 검색 필터 변경 시 처리 (디바운싱 적용) - 첫 렌더링 및 초기화 중 제외
+  useEffect(() => {
+    if (isFirstRender.current) {
+      console.log('🚫 검색 필터 useEffect: 첫 렌더링이므로 건너뜀');
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (isInitializing.current) {
+      console.log('🚫 검색 필터 useEffect: URL 초기화 중이므로 건너뜀');
+      return;
+    }
+
+    console.log('🔍 검색 필터 변경 감지:', searchFilters);
 
     // 디바운싱: 300ms 후에 검색 실행
     const timeoutId = setTimeout(() => {
-      if (isFullDataLoaded && allSubventions.length > 0) {
-        // 전체 데이터가 로드된 경우: 클라이언트 사이드 필터링
-        console.log(`✅ useEffect-${effectId} 클라이언트 사이드 필터링 시작`, {
-          데이터수: allSubventions.length,
-          필터: searchFilters
-        });
-        const filteredData = filterSubventions(allSubventions, searchFilters);
-        console.log(`✅ useEffect-${effectId} 필터링 결과:`, {
-          원본데이터: allSubventions.length,
-          필터링후: filteredData.length
-        });
-        setSubventions(filteredData);
-        setTotalCount(filteredData.length);
-        setCurrentPage(1);
-        console.log(`✅ useEffect-${effectId} 클라이언트 필터링 완료`);
-      } else {
-        // 전체 데이터가 로드되지 않은 경우: 서버 사이드 검색
-        console.log(`🌐 useEffect-${effectId} 서버 사이드 검색 시작:`, {
-          이유: !isFullDataLoaded ? 'isFullDataLoaded가 false' : 'allSubventions가 비어있음',
-          검색조건: searchFilters
-        });
-
-        // 서버 사이드 검색 실행
-        fetchSubventions(1);
-      }
-    }, 300); // 300ms 디바운싱
+      console.log('⏰ 디바운싱 타임아웃 실행 - fetchSubventions(1) 호출');
+      fetchSubventions(1);
+    }, 300);
 
     // 클린업: 다음 타이핑이 들어오면 이전 타이머 취소
     return () => {
-      console.log(`🧹 useEffect-${effectId} 클린업: 타이머 취소`);
       clearTimeout(timeoutId);
     };
-  }, [searchFilters, isFullDataLoaded, allSubventions, filterSubventions]);
+  }, [searchFilters]);
+
+  // 페이지당 항목 수 변경 시 데이터 다시 불러오기
+  useEffect(() => {
+    console.log('📏 itemsPerPage useEffect 트리거:', { itemsPerPage, currentPage, isInitializing: isInitializing.current });
+
+    // 초기화 중이면 실행하지 않음
+    if (isInitializing.current) {
+      console.log('🚫 itemsPerPage useEffect: 초기화 중이므로 건너뜀');
+      return;
+    }
+
+    if (currentPage === 1) {
+      console.log('📏 itemsPerPage 변경으로 fetchSubventions(1) 호출');
+      fetchSubventions(1);
+    }
+  }, [itemsPerPage]);
+
+  // 사용자가 로그인된 경우 관심 목록 가져오기
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserFavorites();
+    }
+  }, [user?.id]);
+
+  // 페이지 변경 시 스크롤 (데이터 로딩 완료 후)
+  useEffect(() => {
+    console.log('스크롤 체크:', { loading, subventionsLength: subventions.length, currentPage });
+    if (!loading && subventions.length > 0 && currentPage > 1) {
+      console.log('페이지 상단으로 스크롤 실행');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentPage, loading, subventions]);
 
   return (
     <div className="bg-gray-50">
@@ -534,7 +432,7 @@ export default function DashboardPage() {
                 <select
                   value={searchFilters.industry}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, industry: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm"
                 >
                   {industryOptions.map(option => (
                     <option key={option} value={option}>{option}</option>
@@ -549,7 +447,7 @@ export default function DashboardPage() {
                 <select
                   value={searchFilters.area}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, area: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm"
                 >
                   {areaOptions.map(option => (
                     <option key={option} value={option}>{option}</option>
@@ -558,23 +456,40 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* 키워드 검색 (별도 줄) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                키워드
-              </label>
-              <input
-                type="text"
-                value={searchFilters.keyword}
-                onChange={(e) => setSearchFilters(prev => ({ ...prev, keyword: e.target.value }))}
-                placeholder="사업명으로 검색"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+            {/* 키워드 검색과 페이지당 항목 수 */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  키워드
+                </label>
+                <input
+                  type="text"
+                  value={searchFilters.keyword}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, keyword: e.target.value }))}
+                  placeholder="사업명으로 검색"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  표시 개수
+                </label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-sm"
+                >
+                  <option value={10}>10개씩</option>
+                  <option value={30}>30개씩</option>
+                  <option value={100}>100개씩</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* 데스크톱: 기존 3열 레이아웃 유지 */}
-          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {/* 데스크톱: 4열 레이아웃 */}
+          <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 업종
@@ -582,7 +497,7 @@ export default function DashboardPage() {
               <select
                 value={searchFilters.industry}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, industry: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               >
                 {industryOptions.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -597,7 +512,7 @@ export default function DashboardPage() {
               <select
                 value={searchFilters.area}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, area: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               >
                 {areaOptions.map(option => (
                   <option key={option} value={option}>{option}</option>
@@ -614,18 +529,31 @@ export default function DashboardPage() {
                 value={searchFilters.keyword}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, keyword: e.target.value }))}
                 placeholder="사업명으로 검색"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                표시 개수
+              </label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              >
+                <option value={10}>10개씩</option>
+                <option value={30}>30개씩</option>
+                <option value={100}>100개씩</option>
+              </select>
             </div>
           </div>
 
           {/* 상태 정보 */}
           <div className="mb-4">
             <div className="text-sm text-gray-600 text-center sm:text-left">
-              {loading || workflowLoading ? "데이터 조회 중..." :
-                isFullDataLoaded
-                  ? `🚀 전체 ${allSubventions.length}개 데이터 로드 완료 | 필터링 결과: ${subventions.length}개 표시 (실시간 검색 가능)`
-                  : `총 ${totalCount}개의 지원사업 중 ${subventions.length}개 표시 (${currentPage}페이지)`
+              {loading ? "데이터 조회 중..." :
+                `총 ${totalCount}개의 지원사업 중 ${subventions.length}개 표시 (${currentPage}페이지)`
               }
             </div>
           </div>
@@ -634,79 +562,19 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:flex sm:justify-end gap-2 sm:gap-2 mb-6">
             <button
               onClick={handleSearch}
-              disabled={loading || workflowLoading}
-              className="px-3 py-2 sm:px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-sm font-medium"
+              disabled={loading}
+              className="px-3 py-2 sm:px-4 bg-brand text-white rounded-md hover:bg-brand-700 disabled:bg-brand-400 disabled:cursor-not-allowed text-sm font-medium"
             >
               <span className="block sm:hidden">🔍 빠른검색</span>
               <span className="hidden sm:block">
-                {loading ? "검색 중..." : isFullDataLoaded ? "🔍 즉시 검색" : "빠른 검색"}
+                {loading ? "검색 중..." : "빠른 검색"}
               </span>
             </button>
 
-            <button
-              onClick={() => handleWorkflowCrawl('single')}
-              disabled={loading || workflowLoading}
-              className="px-3 py-2 sm:px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-sm font-medium"
-            >
-              <span className="block sm:hidden">🔧 워크플로우</span>
-              <span className="hidden sm:block">
-                {workflowLoading ? "워크플로우 실행 중..." : "워크플로우 검색"}
-              </span>
-            </button>
 
-            <button
-              onClick={() => handleWorkflowCrawl('batch')}
-              disabled={loading || workflowLoading}
-              className="px-3 py-2 sm:px-4 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed text-sm font-medium"
-            >
-              <span className="block sm:hidden">📊 대량크롤링</span>
-              <span className="hidden sm:block">대량 크롤링</span>
-            </button>
-
-            <button
-              onClick={handleFullCrawl}
-              disabled={loading || workflowLoading}
-              className="px-3 py-2 sm:px-4 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-sm font-medium"
-            >
-              <span className="block sm:hidden">🚀 전체크롤링</span>
-              <span className="hidden sm:block">
-                {loading ? "전체 크롤링 중..." : "🚀 전체 크롤링 (4,332개)"}
-              </span>
-            </button>
           </div>
         </div>
 
-        {/* 워크플로우 상태 표시 */}
-        {workflowStatus && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-medium text-blue-900">워크플로우 실행 상태</h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                workflowStatus.status === 'completed' ? 'bg-green-100 text-green-800' :
-                workflowStatus.status === 'running' ? 'bg-blue-100 text-blue-800' :
-                workflowStatus.status === 'failed' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {workflowStatus.status}
-              </span>
-            </div>
-            <div className="text-sm text-blue-700">
-              <p>진행률: {workflowStatus.progress}%</p>
-              <p>현재 단계: {workflowStatus.currentStep + 1} / {workflowStatus.results.length + workflowStatus.errors.length + 1}</p>
-              {workflowStatus.logs.length > 0 && (
-                <p>최근 로그: {workflowStatus.logs[workflowStatus.logs.length - 1]}</p>
-              )}
-            </div>
-            {workflowStatus.progress > 0 && (
-              <div className="mt-2 bg-blue-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${workflowStatus.progress}%` }}
-                ></div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* 오류 메시지 */}
         {error && (
@@ -716,8 +584,26 @@ export default function DashboardPage() {
         )}
 
         {/* 지원사업 목록 */}
-        <div className="space-y-4">
-          {subventions.length === 0 && !loading && !workflowLoading ? (
+        <div className="space-y-6">
+          {loading && subventions.length === 0 ? (
+            // 로딩 중이고 데이터가 없을 때 스켈레톤 UI
+            <div className="space-y-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-white p-6 rounded-lg shadow-sm animate-pulse">
+                  <div className="h-6 bg-gray-200 rounded mb-4 w-3/4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                  <div className="mt-4 flex gap-3">
+                    <div className="h-8 bg-gray-200 rounded w-20"></div>
+                    <div className="h-8 bg-gray-200 rounded w-24"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : subventions.length === 0 && !loading ? (
             <div className="bg-white p-8 rounded-lg shadow-sm text-center">
               <div className="text-gray-500 text-lg mb-2">🏛️</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -728,77 +614,29 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : (
-            subventions.map((item, index) => {
-              const deadline = getDaysUntilDeadline(item["접수 마감일"]);
-              return (
-                <div key={`${item.subventionId}-${index}`} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                  <div className="mb-4">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">
-                            {item.지원사업명}
-                          </h3>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${deadline.color} w-fit`}>
-                            {deadline.status}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-sm text-gray-600 mb-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                        <p><span className="font-medium">접수기관:</span> {item.접수기관}</p>
-                        <p><span className="font-medium">지역:</span> {item.지역}</p>
-                        <p><span className="font-medium">지원방식:</span> {item["지원 방식"]}</p>
-                        <p><span className="font-medium">접수방법:</span> {item["접수 방법"]}</p>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-500 pt-2">
-                        <span className="flex items-center gap-1">💰 <span className="font-medium">지원금액:</span> {formatAmount(item.지원금액)}</span>
-                        <span className="flex items-center gap-1">📈 <span className="font-medium">금리:</span> {item.금리}</span>
-                        <span className="flex items-center gap-1">📅 <span className="font-medium">마감일:</span> {formatDate(item["접수 마감일"])}</span>
-                        <span className="flex items-center gap-1">🏢 <span className="font-medium">출처:</span> {item.출처}</span>
-                        {item.첨부파일 && item.첨부파일 !== "없음" && (
-                          <span className="flex items-center gap-1 col-span-full">📎 <span className="font-medium">첨부파일:</span> {item.첨부파일}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-100 gap-3 sm:gap-0">
-                    <div className="space-x-2">
-                      {item["공고 URL"] &&
-                       item["공고 URL"] !== "확인 필요" &&
-                       item["공고 URL"].startsWith('http') ? (
-                        <a
-                          href={item["공고 URL"]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                          자세히 보기
-                        </a>
-                      ) : (
-                        <span className="inline-flex items-center px-4 py-2 border border-gray-200 rounded-md text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
-                          </svg>
-                          링크 없음
-                        </span>
-                      )}
-                      <button className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        관심 등록
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+            subventions.map((item, index) => (
+              <div key={`${item.subventionId}-${index}`} className={loading ? 'opacity-70 pointer-events-none' : ''}>
+                <SupportCard
+                  title={item.지원사업명}
+                  hostInstitution={item.접수기관}
+                  supportMethod={item["지원 방식"]}
+                  supportAmount={item.지원금액}
+                  applicationDeadline={item["접수 마감일"]}
+                  source={item.출처}
+                  region={item.지역}
+                  interestRate={item.금리}
+                  applicationMethod={item["접수 방법"]}
+                  announcementUrl={item["공고 URL"]}
+                  attachments={item.첨부파일목록}
+                  subventionId={item.subventionId}
+                  favoriteLoading={favoriteLoading}
+                  showBookmarkButton={true}
+                  isBookmarked={favorites.has(item.subventionId)}
+                  onBookmark={() => handleFavoriteToggle(item)}
+                  variant="dashboard"
+                />
+              </div>
+            ))
           )}
         </div>
 
@@ -808,23 +646,23 @@ export default function DashboardPage() {
             <div className="bg-white px-6 py-3 rounded-lg shadow-sm">
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
-                  {currentPage} 페이지 / 총 {Math.ceil(totalCount / 10)} 페이지
-                  <span className="text-blue-600 ml-2">
-                    (총 {totalCount}개)
+                  {currentPage} 페이지 / 총 {Math.ceil(totalCount / itemsPerPage)} 페이지
+                  <span className="text-brand ml-2">
+                    (총 {totalCount}개, {itemsPerPage}개씩 표시)
                   </span>
                 </span>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage <= 1 || loading || workflowLoading}
+                    disabled={currentPage <= 1 || loading}
                     className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     이전
                   </button>
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage >= Math.ceil(totalCount / 10) || loading || workflowLoading}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={currentPage >= Math.ceil(totalCount / itemsPerPage) || loading}
+                    className="px-3 py-1 text-sm bg-brand text-white rounded hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     다음
                   </button>

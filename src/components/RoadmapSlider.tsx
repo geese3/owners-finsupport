@@ -106,7 +106,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
           mission.status === 'completed'
             ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg'
             : mission.status === 'available'
-            ? 'bg-gradient-to-br from-blue-400 to-blue-600 shadow-md animate-pulse'
+            ? 'bg-gradient-to-br from-brand-400 to-brand shadow-md animate-pulse'
             : mission.status === 'in_progress'
             ? 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-md'
             : 'bg-gray-300'
@@ -141,7 +141,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
         mission.status === 'completed'
           ? 'border-yellow-300 bg-yellow-50'
           : mission.status === 'available'
-          ? 'border-blue-300 bg-blue-50'
+          ? 'border-brand-300 bg-brand-50'
           : mission.status === 'in_progress'
           ? 'border-orange-300 bg-orange-50'
           : 'border-gray-200 bg-gray-50'
@@ -163,7 +163,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
             mission.status === 'completed'
               ? 'bg-yellow-200 text-yellow-800'
               : mission.status === 'available'
-              ? 'bg-blue-200 text-blue-800'
+              ? 'bg-brand-200 text-brand-800'
               : mission.status === 'in_progress'
               ? 'bg-orange-200 text-orange-800'
               : 'bg-gray-200 text-gray-600'
@@ -173,7 +173,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
           {mission.status === 'available' && (
             <button
               onClick={() => handleStartMission(mission)}
-              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+              className="bg-brand text-white px-3 py-1 rounded text-sm hover:bg-brand-700 transition-colors"
             >
               시작하기
             </button>
@@ -196,7 +196,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
           <div className="flex items-center justify-center sm:justify-end space-x-2 sm:space-x-4">
             <button
               onClick={() => setShowAllMissions(!showAllMissions)}
-              className="hidden sm:block px-3 py-2 sm:px-4 bg-blue-600 text-white text-xs sm:text-sm rounded-md hover:bg-blue-700 transition-colors"
+              className="hidden sm:block px-3 py-2 sm:px-4 bg-brand text-white text-xs sm:text-sm rounded-md hover:bg-brand-700 transition-colors"
             >
               {showAllMissions ? '슬라이드 보기' : '전체보기'}
             </button>
@@ -303,7 +303,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
                   key={index}
                   onClick={() => goToSlide(index)}
                   className={`w-3 h-3 rounded-full transition-colors ${
-                    currentSlide === index ? 'bg-blue-600' : 'bg-gray-300'
+                    currentSlide === index ? 'bg-brand' : 'bg-gray-300'
                   }`}
                 />
               ))}
@@ -315,7 +315,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
                   key={index}
                   onClick={() => goToSlide(index)}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    currentSlide === index ? 'bg-blue-600' : 'bg-gray-300'
+                    currentSlide === index ? 'bg-brand' : 'bg-gray-300'
                   }`}
                 />
               ))}
@@ -327,7 +327,7 @@ export const RoadmapSlider: React.FC<RoadmapSliderProps> = ({
         <div className="flex sm:hidden justify-center mt-4">
           <button
             onClick={() => setShowAllMissions(!showAllMissions)}
-            className="px-3 py-2 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+            className="px-3 py-2 bg-brand text-white text-xs rounded-md hover:bg-brand-700 transition-colors"
           >
             {showAllMissions ? '슬라이드 보기' : '전체보기'}
           </button>
