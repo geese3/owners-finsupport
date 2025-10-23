@@ -190,11 +190,18 @@ export default function SignupPage() {
       const selectedIndustry = INDUSTRY_OPTIONS.find(item => item.code === formData.industryCode);
       const selectedRegion = REGION_OPTIONS.find(item => item.code === formData.regionCode);
 
+      // 프로덕션 환경에서는 Vercel 도메인 사용
+      const redirectUrl = process.env.NEXT_PUBLIC_APP_ENV === 'production'
+        ? 'https://owners-finsupport.vercel.app/auth/callback'
+        : `${window.location.origin}/auth/callback`;
+
+      console.log('🔗 Email redirect URL:', redirectUrl);
+
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: redirectUrl,
           data: {
             name: formData.companyName, // 회사명을 이름으로 사용
             company: formData.companyName,
