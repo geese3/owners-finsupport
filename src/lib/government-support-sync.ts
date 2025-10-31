@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import { decodeTitle, decodeDescription, decodeHtmlEntities } from './html-decoder'
 
 // Service role client for admin operations
 const supabaseAdmin = createClient(
@@ -242,18 +243,18 @@ class GovernmentSupportSyncService {
 
         return {
           subvention_id: item.seq || item.pblancId,
-          title: item.title || item.pblancNm || '',
+          title: decodeTitle(item.title || item.pblancNm || ''),
           region: extractRegion(item.title || item.pblancNm || '', item.hashtags || '', item.jrsdInsttNm || ''),
-          host_institution: item.author || item.jrsdInsttNm || '',
-          support_method: item.pldirSportRealmMlsfcCodeNm || item.lcategory || '기타',  // 지원 방식 필드 사용
+          host_institution: decodeHtmlEntities(item.author || item.jrsdInsttNm || ''),
+          support_method: decodeHtmlEntities(item.pldirSportRealmMlsfcCodeNm || item.lcategory || '기타'),  // 지원 방식 필드 사용
           support_amount: '확인 필요', // API에서 직접 제공되지 않음
           interest_rate: '확인 필요', // API에서 직접 제공되지 않음
-          application_deadline: item.reqstBeginEndDe || parseApplicationPeriod(item.reqstDt) || '확인 필요',  // 신청 기간 필드 사용
-          application_method: item.reqstMthPapersCn || '온라인접수',  // 신청 방법 필드 사용
-          announcement_url: item.link || item.pblancUrl || '',
+          application_deadline: decodeHtmlEntities(item.reqstBeginEndDe || parseApplicationPeriod(item.reqstDt) || '확인 필요'),  // 신청 기간 필드 사용
+          application_method: decodeDescription(item.reqstMthPapersCn || '온라인접수'),  // 신청 방법 필드 사용
+          announcement_url: decodeHtmlEntities(item.link || item.pblancUrl || ''),
           source: '정책정보포털',
-          attachment_files: item.fileNm || item.printFileNm || '없음',
-          business_type_code: item.trgetNm || '전체',
+          attachment_files: decodeHtmlEntities(item.fileNm || item.printFileNm || '없음'),
+          business_type_code: decodeHtmlEntities(item.trgetNm || '전체'),
           status: 'active',
           api_source: 'policy_portal',
           api_last_updated_at: new Date().toISOString(),
@@ -481,7 +482,7 @@ export async function scheduledSync() {
   console.log('정부지원사업 데이터 정기 동기화 시작...')
 
   const result = await syncGovernmentSupports({
-    mode: 'replace',
+    mode: 'upsert',
     dryRun: false
   })
 
