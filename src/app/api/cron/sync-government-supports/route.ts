@@ -27,28 +27,79 @@ export async function GET(request: NextRequest) {
 
     console.log(`[${new Date().toISOString()}] 정부지원사업 데이터 정기 동기화 시작`)
 
-    // 동기화 실행
-    const result = await scheduledSync()
+    let totalCount = 0
+    let allLogs: any[] = []
+    let errors: string[] = []
 
-    if (result.success) {
-      console.log(`[${new Date().toISOString()}] 정기 동기화 완료: ${result.count}개 항목`)
+    try {
+      // 1. Bizinfo (기업마당) 동기화 실행
+      console.log(`[${new Date().toISOString()}] Bizinfo 동기화 시작...`)
+      const bizinfoResult = await scheduledSync()
 
-      return NextResponse.json({
-        success: true,
-        message: `정기 동기화가 성공적으로 완료되었습니다.`,
-        count: result.count,
-        timestamp: new Date().toISOString(),
-        logs: result.logs
-      })
-    } else {
-      console.error(`[${new Date().toISOString()}] 정기 동기화 실패:`, result.error)
+      if (bizinfoResult.success) {
+        totalCount += bizinfoResult.count
+        allLogs.push(...(bizinfoResult.logs || []))
+        console.log(`[${new Date().toISOString()}] Bizinfo 동기화 완료: ${bizinfoResult.count}개 항목`)
+      } else {
+        errors.push(`Bizinfo 동기화 실패: ${bizinfoResult.error}`)
+        allLogs.push(...(bizinfoResult.logs || []))
+      }
+
+      // 2. K-Startup 동기화 실행
+      console.log(`[${new Date().toISOString()}] K-Startup 동기화 시작...`)
+      const { kstartupSyncService } = await import('@/lib/kstartup-sync')
+      const kstartupResult = await kstartupSyncService.syncData({ mode: 'upsert', dryRun: false })
+
+      if (kstartupResult.success) {
+        totalCount += kstartupResult.count
+        allLogs.push(...(kstartupResult.logs || []))
+        console.log(`[${new Date().toISOString()}] K-Startup 동기화 완료: ${kstartupResult.count}개 항목`)
+      } else {
+        errors.push(`K-Startup 동기화 실패: ${kstartupResult.error}`)
+        allLogs.push(...(kstartupResult.logs || []))
+      }
+
+      // 결과 처리
+      if (errors.length === 0) {
+        console.log(`[${new Date().toISOString()}] 전체 정기 동기화 완료: ${totalCount}개 항목 (Bizinfo + K-Startup)`)
+
+        return NextResponse.json({
+          success: true,
+          message: `정기 동기화가 성공적으로 완료되었습니다. (Bizinfo + K-Startup)`,
+          count: totalCount,
+          details: {
+            bizinfo: bizinfoResult.count,
+            kstartup: kstartupResult.count
+          },
+          timestamp: new Date().toISOString(),
+          logs: allLogs
+        })
+      } else {
+        console.error(`[${new Date().toISOString()}] 일부 동기화 실패:`, errors)
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: errors.join('; '),
+            message: `일부 동기화가 실패했습니다: ${errors.join(', ')}`,
+            count: totalCount,
+            timestamp: new Date().toISOString(),
+            logs: allLogs
+          },
+          { status: 500 }
+        )
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] 동기화 실행 중 오류:`, error)
 
       return NextResponse.json(
         {
           success: false,
-          error: result.error,
+          error: error instanceof Error ? error.message : '알 수 없는 오류',
+          message: '동기화 실행 중 오류가 발생했습니다.',
+          count: totalCount,
           timestamp: new Date().toISOString(),
-          logs: result.logs
+          logs: allLogs
         },
         { status: 500 }
       )

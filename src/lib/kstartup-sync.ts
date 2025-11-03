@@ -112,7 +112,7 @@ class KStartupSyncService {
     try {
       const allItems: KStartupItem[] = []
       let page = 1
-      let maxPages = 1000 // 전체 데이터 수집을 위해 1000페이지까지
+      let maxPages = 50 // 테스트용: 최근 데이터 위주로 50페이지만 수집
 
       this.log('FETCH_EXTERNAL', 'success', `K-Startup API 호출 시작 (전체 데이터 수집)`)
 
@@ -165,13 +165,13 @@ class KStartupSyncService {
               // 첫 번째 페이지에서만 maxPages 조정
               if (currentPage === 1) {
                 const requiredPages = Math.ceil(totalCount / 30)
-                maxPages = Math.min(requiredPages, 1000) // 최대 1000페이지로 제한
+                maxPages = Math.min(requiredPages, 50) // 테스트용: 최대 50페이지로 제한
                 console.log('🌐 수집할 페이지 수:', maxPages)
               }
             } else {
               // totalCount가 없는 경우 충분한 페이지 수로 설정
               if (currentPage === 1) {
-                maxPages = 1000 // 충분히 큰 수로 설정 (빈 페이지 감지로 중단)
+                maxPages = 50 // 테스트용: 충분한 수로 설정 (빈 페이지 감지로 중단)
                 console.log('🌐 totalCount 없음: 빈 페이지까지 수집 예정')
               }
             }
@@ -263,15 +263,15 @@ class KStartupSyncService {
 
   private transformData(rawData: KStartupItem[]) {
     try {
-      // 테스트용: 2025년 데이터만 필터링
+      // 테스트용: 2024년과 2025년 데이터만 필터링 (최신 데이터 위주)
       const filteredData = rawData.filter(item => {
         const bgngDate = item.pbanc_rcpt_bgng_dt || item.pbanc_reg_dt
         if (!bgngDate || bgngDate.length !== 8) return false
         const year = bgngDate.slice(0, 4)
-        return year === '2025'
+        return year === '2024' || year === '2025'
       })
 
-      console.log(`🗓️ 전체 데이터: ${rawData.length}개, 2025년 데이터: ${filteredData.length}개`)
+      console.log(`🗓️ 전체 데이터: ${rawData.length}개, 2024-2025년 데이터: ${filteredData.length}개`)
 
       const transformed = filteredData.map(item => {
         // 신청 기간 파싱 (YYYYMMDD를 YYYY-MM-DD로 변환)
